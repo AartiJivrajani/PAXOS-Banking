@@ -13,12 +13,6 @@ type Block struct {
 	Transactions list.List `json:"transactions"`
 }
 
-type Server struct {
-	Id   int       `json:"id"`
-	Log  list.List `json:"log"`
-	Port int       `json:"port"`
-}
-
 type Client struct {
 	Id   int `json:"id"`
 	Port int `json:"port"`
