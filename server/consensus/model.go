@@ -25,4 +25,7 @@ type Server struct {
 
 	// mapping of the server ID v/s connection object(to maintain the network topology)
 	ServerConn map[int]net.Conn
+
+	// book-keep the other peers of this server
+	Peers []int
 }

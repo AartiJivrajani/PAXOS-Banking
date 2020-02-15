@@ -28,8 +28,8 @@ func configureLogger(level string) {
 func main() {
 
 	var (
-		logLevel   string
-		id int
+		logLevel string
+		id       int
 	)
 	_, cancel := context.WithCancel(context.Background())
 	// parse all the command line arguments

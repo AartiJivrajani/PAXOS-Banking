@@ -1,9 +1,10 @@
 package common
 
 const (
-	FaultsAllowed int    = 1
-	LEADER        string = "leader"
-	FOLLOWER      string = "follower"
+	FaultsAllowed        int     = 1
+	LEADER               string  = "leader"
+	FOLLOWER             string  = "follower"
+	MaxReconnectAttempts float64 = 3
 )
 
 var ServerPortMap = map[int]int{
