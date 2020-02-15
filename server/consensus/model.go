@@ -11,9 +11,10 @@ var (
 )
 
 type Server struct {
-	Id   int        `json:"id"`
-	Log  *list.List `json:"log"`
-	Port int        `json:"port"`
+	Id int `json:"id"`
+	// log maintained by the server
+	Blockchain *list.List `json:"blockchain"`
+	Port       int        `json:"port"`
 
 	// SeqNum + id are used to distinguish among values proposed by different leaders
 	// This SeqNum is locally and monotonically incremented
@@ -28,4 +29,6 @@ type Server struct {
 
 	// book-keep the other peers of this server
 	Peers []int
+	// each server serves a single client associated to it
+	AssociatedClient int
 }

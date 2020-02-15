@@ -3,6 +3,7 @@ package consensus
 import (
 	"PAXOS-Banking/common"
 	"container/list"
+	"encoding/json"
 	"net"
 	"strconv"
 	"time"
@@ -18,15 +19,16 @@ var BlockChainServer *Server
 // with default values. It also starts book-keeping the peers of this particular server
 func InitServer(id int) *Server {
 	server := &Server{
-		Id:   0,
-		Log:  list.New(),
-		Port: common.ServerPortMap[id],
+		Id:         id,
+		Blockchain: list.New(),
+		Port:       common.ServerPortMap[id],
 		// we always start off with seq num = 1
-		SeqNum:          1,
-		Status:          common.FOLLOWER,
-		AlreadyPromised: false,
-		ServerConn:      make(map[int]net.Conn),
-		Peers:           make([]int, 0),
+		SeqNum:           1,
+		Status:           common.FOLLOWER,
+		AlreadyPromised:  false,
+		ServerConn:       make(map[int]net.Conn),
+		Peers:            make([]int, 0),
+		AssociatedClient: id,
 	}
 	if id == 1 {
 		server.Peers = append(server.Peers, 2, 3)
@@ -89,7 +91,65 @@ func (server *Server) createTopology() {
 	}
 }
 
+// processTxnRequest first checks the client balance in the local blockchain. If the amount to be
+// transferred is greater than the local balance, a PAXOS run is made, in order to
+// fetch the transactions from all the other replicas. Else, a block is added to the blockchain and
+// the transaction is carried out locally.
+func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.TransferTxn) {
+	// check the current balance
+	runPaxos := server.checkIfTxnPossible(transferRequest)
+	if !runPaxos {
+		server.execLocalTxn(transferRequest)
+	} else {
+		server.execPaxosRun(transferRequest)
+	}
+}
+
+// handleClientConnections simply decodes the client transaction requests
+// and forwards them to the right handlers
+func (server *Server) handleClientConnections(conn net.Conn) {
+	var (
+		transferRequest *common.TransferTxn
+		err             error
+	)
+	d := json.NewDecoder(conn)
+	for {
+		err = d.Decode(&transferRequest)
+		if err != nil {
+			continue
+		}
+		log.WithFields(log.Fields{
+			"request": transferRequest,
+		}).Debug("Request recvd from a client")
+		go server.processTxnRequest(conn, transferRequest)
+	}
+}
+
+// startClientListener opens a connection to the servers' respective clients and listens to
+// it. The client sends all its transaction requests to the server.
+func (server *Server) startClientListener() {
+	var (
+		err error
+	)
+	PORT := ":" + strconv.Itoa(common.ClientPortMap[server.Id])
+	listener, err := net.Listen("tcp", PORT)
+	if err != nil {
+		log.Error("error establishing connection to the client, shutting down... ")
+		return
+	}
+	for {
+		c, err := listener.Accept()
+		if err != nil {
+			log.Error("error starting the client listener, shutting down...")
+			return
+		}
+		go server.handleClientConnections(c)
+	}
+}
+
 func Start(id int) {
 	BlockChainServer = InitServer(id)
 	BlockChainServer.createTopology()
+
+	go BlockChainServer.startClientListener()
 }
