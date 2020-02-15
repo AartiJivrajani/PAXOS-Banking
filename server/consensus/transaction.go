@@ -29,5 +29,5 @@ func (server *Server) execLocalTxn(txn *common.TransferTxn) {
 
 // execPaxosRun initiates a PAXOS run and then adds the transaction to the local blockchain
 func (server *Server) execPaxosRun(txn *common.TransferTxn) {
-
+	server.getElected()
 }

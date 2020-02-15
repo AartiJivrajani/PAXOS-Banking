@@ -105,45 +105,51 @@ func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.T
 	}
 }
 
-// handleClientConnections simply decodes the client transaction requests
+// handleIncomingConnections simply decodes the incoming requests
 // and forwards them to the right handlers
-func (server *Server) handleClientConnections(conn net.Conn) {
+func (server *Server) handleIncomingConnections(conn net.Conn) {
 	var (
-		transferRequest *common.TransferTxn
-		err             error
+		request *common.Message
+		err     error
 	)
 	d := json.NewDecoder(conn)
 	for {
-		err = d.Decode(&transferRequest)
+		err = d.Decode(&request)
 		if err != nil {
 			continue
 		}
 		log.WithFields(log.Fields{
-			"request": transferRequest,
+			"request": request,
 		}).Debug("Request recvd from a client")
-		go server.processTxnRequest(conn, transferRequest)
+		switch request.Type {
+		case common.TRANSACTION_MESSAGE:
+			go server.processTxnRequest(conn, request.TxnMessage)
+		case common.PREPARE_MESSAGE:
+			go server.processElectionMessage(conn, request.PrepareMsg)
+
+		}
 	}
 }
 
 // startClientListener opens a connection to the servers' respective clients and listens to
 // it. The client sends all its transaction requests to the server.
-func (server *Server) startClientListener() {
+func (server *Server) startListener() {
 	var (
 		err error
 	)
-	PORT := ":" + strconv.Itoa(common.ClientPortMap[server.Id])
+	PORT := ":" + strconv.Itoa(common.ServerPortMap[server.Id])
 	listener, err := net.Listen("tcp", PORT)
 	if err != nil {
-		log.Error("error establishing connection to the client, shutting down... ")
+		log.Error("error establishing connection to the server port, shutting down... ")
 		return
 	}
 	for {
 		c, err := listener.Accept()
 		if err != nil {
-			log.Error("error starting the client listener, shutting down...")
+			log.Error("error starting the server listener, shutting down...")
 			return
 		}
-		go server.handleClientConnections(c)
+		go server.handleIncomingConnections(c)
 	}
 }
 
@@ -151,5 +157,5 @@ func Start(id int) {
 	BlockChainServer = InitServer(id)
 	BlockChainServer.createTopology()
 
-	go BlockChainServer.startClientListener()
+	go BlockChainServer.startListener()
 }
