@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	LogLock sync.Mutex
+	// TODO: See if we really need this?
+	BlockchainLock sync.Mutex
 )
 
 type Server struct {
