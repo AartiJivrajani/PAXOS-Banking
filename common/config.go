@@ -5,6 +5,10 @@ const (
 	LEADER               string  = "leader"
 	FOLLOWER             string  = "follower"
 	MaxReconnectAttempts float64 = 3
+	// max number of seconds the client should wait for response from the server
+	MAX_CLIENT_TIMEOUT int = 5
+	// number of seconds the client should sleep before initiating a server request once again
+	WAIT_SECONDS int = 10
 )
 
 var ClientPortMap = map[int]int{

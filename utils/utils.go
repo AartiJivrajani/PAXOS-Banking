@@ -1,9 +1,11 @@
 package utils
 
 import (
-	log "github.com/Sirupsen/logrus"
+	"container/list"
 	"os"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 func ConfigureLogger(level string) {
@@ -18,4 +20,12 @@ func ConfigureLogger(level string) {
 	case "warning", "warn":
 		log.SetLevel(log.WarnLevel)
 	}
+}
+
+func PrintBlockchain(blockchain *list.List) {
+
+}
+
+func PrintLog(log *list.List) {
+
 }

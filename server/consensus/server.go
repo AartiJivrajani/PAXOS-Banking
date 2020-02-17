@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -14,7 +15,38 @@ import (
 	"github.com/jpillora/backoff"
 )
 
-var BlockChainServer *Server
+var (
+	// TODO: See if we really need this?
+	BlockchainLock   sync.Mutex
+	BlockChainServer *Server
+)
+
+type Server struct {
+	Id int `json:"id"`
+	// log maintained by the server
+	Blockchain *list.List `json:"blockchain"`
+	Port       int        `json:"port"`
+
+	// SeqNum + id are used to distinguish among values proposed by different leaders
+	// This SeqNum is locally and monotonically incremented
+	SeqNum int `json:"seq_num"`
+	// whether the server is the leader or the follower currently
+	Status string `json:"status"`
+	// whether the server has already promised to follow another server.
+	AlreadyPromised bool `json:"already_promised"`
+
+	// mapping of the server ID v/s connection object(to maintain the network topology)
+	ServerConn map[int]net.Conn
+
+	// book-keep the other peers of this server
+	Peers []int
+	// each server serves a single client associated to it
+	AssociatedClient int
+
+	RedisConn *redis.Client
+
+	Log *list.List
+}
 
 // InitServer creates a new server instance and initializes all its parameters
 // with default values. It also starts book-keeping the peers of this particular server
@@ -30,6 +62,7 @@ func InitServer(id int) *Server {
 		ServerConn:       make(map[int]net.Conn),
 		Peers:            make([]int, 0),
 		AssociatedClient: id,
+		Log:              list.New(),
 	}
 	server.RedisConn = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",

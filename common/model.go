@@ -3,8 +3,11 @@ package common
 import "container/list"
 
 const (
-	TRANSACTION_MESSAGE string = "Transaction"
-	PREPARE_MESSAGE     string = "Prepare"
+	TRANSACTION_MESSAGE     string = "Transaction"
+	PREPARE_MESSAGE         string = "Prepare"
+	SHOW_LOG_MESSAGE        string = "Show Log"
+	SHOW_BLOCKCHAIN_MESSAGE string = "Show Blockchain"
+	SHOW_BALANCE            string = "Show Balance"
 )
 
 type TransferTxn struct {
@@ -23,6 +26,6 @@ type Message struct {
 }
 
 type Block struct {
-	SeqNum       int       `json:"seq_num"`
-	Transactions list.List `json:"transactions"`
+	SeqNum       int        `json:"seq_num"`
+	Transactions *list.List `json:"transactions"`
 }
