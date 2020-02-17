@@ -1,9 +1,14 @@
 # PAXOS-Banking
 CS270-Advanced Distributed Systems Final Project
 
+### Deployment
 
-- Server will ALWAYS know the associated clients txns
-- 
+To run redis locally, make sure you have the `redis.conf` file. 
+Run the below command to start the redis server in the background
+```bash
+redis-server ./redis.conf
+```
+
 Questions - 
 1. When the server fails, and it had some pending local txns, what happens whjen the server comes back up? 
     - Should it have persisted its own block chain and the local txns? 
@@ -25,10 +30,10 @@ a persistent store as well (possibly redis?)
 in the store for this particular server, it means that the server was up at one point in time - and thus, it is 
 a zombie process. Else, the server is a baby.
 2. In case of a zombie server, firstly, the block chain is fetched from the store. Then, a special message is sent 
-to each of the other servers, requesting "re-conciliation". <RECONCILE_REQUEST> 
-3. Each of the other servers sends a list of sequence numbers contained in their respective blockchains. <R_ACK, [1,2,3]> 
+to each of the other servers, requesting "re-conciliation". `<RECONCILE_REQUEST>` 
+3. Each of the other servers sends a list of sequence numbers contained in their respective blockchains. `<R_ACK, [1,2,3]>` 
 4. The zombie servers picks the longest list and sends a message back to it asking for the blocks. Once it receives
-the blocks, it updates its own block chain and also caches it. Zombie: <R_BLOCKS_REQ, [2, 3]> ..... Response: <R_BLOCKS_RESP, [Ba, Bb]>
+the blocks, it updates its own block chain and also caches it. Zombie: `<R_BLOCKS_REQ, [2, 3]>` ..... Response: `<R_BLOCKS_RESP, [Ba, Bb]>`
 
 TODO:   
 [1] Write the client side code.   

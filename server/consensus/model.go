@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"container/list"
+	"gopkg.in/redis.v5"
 	"net"
 	"sync"
 )
@@ -32,4 +33,6 @@ type Server struct {
 	Peers []int
 	// each server serves a single client associated to it
 	AssociatedClient int
+
+	RedisConn *redis.Client
 }

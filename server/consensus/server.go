@@ -9,6 +9,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	redis "gopkg.in/redis.v5"
 
 	"github.com/jpillora/backoff"
 )
@@ -30,6 +31,11 @@ func InitServer(id int) *Server {
 		Peers:            make([]int, 0),
 		AssociatedClient: id,
 	}
+	server.RedisConn = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
 	if id == 1 {
 		server.Peers = append(server.Peers, 2, 3)
 	} else if id == 2 {
