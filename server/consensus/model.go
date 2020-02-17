@@ -2,9 +2,10 @@ package consensus
 
 import (
 	"container/list"
-	"gopkg.in/redis.v5"
 	"net"
 	"sync"
+
+	"gopkg.in/redis.v5"
 )
 
 var (

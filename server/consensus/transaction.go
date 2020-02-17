@@ -1,6 +1,9 @@
 package consensus
 
-import "PAXOS-Banking/common"
+import (
+	"PAXOS-Banking/common"
+	"container/list"
+)
 
 // checkIfTxnPossible fetches the client's current balance from the server's local
 // block chain. If this balance is greater than the amount to be transacted, a PAXOS run
@@ -9,11 +12,15 @@ func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
 	// the initial balance of each client is $100
 	balance := 100
 	for block := server.Blockchain.Front(); block != nil; block = block.Next() {
-		if block.Value.(*common.TransferTxn).Recvr == server.AssociatedClient {
-			balance += block.Value.(*common.TransferTxn).Amount
-		}
-		if block.Value.(*common.TransferTxn).Sender == server.AssociatedClient {
-			balance -= block.Value.(*common.TransferTxn).Amount
+		txns := block.Value.(*list.List)
+		// each block has multiple transactions
+		for txn := txns.Front(); txn != nil; txn = txn.Next() {
+			if txn.Value.(*common.TransferTxn).Recvr == server.AssociatedClient {
+				balance += txn.Value.(*common.TransferTxn).Amount
+			}
+			if txn.Value.(*common.TransferTxn).Sender == server.AssociatedClient {
+				balance -= txn.Value.(*common.TransferTxn).Amount
+			}
 		}
 	}
 	if balance > txn.Amount {

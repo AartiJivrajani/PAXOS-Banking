@@ -36,6 +36,7 @@ func InitServer(id int) *Server {
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
+
 	if id == 1 {
 		server.Peers = append(server.Peers, 2, 3)
 	} else if id == 2 {
