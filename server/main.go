@@ -2,28 +2,14 @@ package main
 
 import (
 	"PAXOS-Banking/server/consensus"
+	"PAXOS-Banking/utils"
 	"context"
 	"flag"
 	"os"
 	"os/signal"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 )
-
-func configureLogger(level string) {
-	log.SetOutput(os.Stderr)
-	switch strings.ToLower(level) {
-	case "panic":
-		log.SetLevel(log.PanicLevel)
-	case "debug":
-		log.SetLevel(log.DebugLevel)
-	case "info":
-		log.SetLevel(log.InfoLevel)
-	case "warning", "warn":
-		log.SetLevel(log.WarnLevel)
-	}
-}
 
 func main() {
 
@@ -37,7 +23,7 @@ func main() {
 	flag.IntVar(&id, "id", 1, "id of the server(1,2,3)")
 	flag.Parse()
 
-	configureLogger(logLevel)
+	utils.ConfigureLogger(logLevel)
 
 	consensus.Start(id)
 
