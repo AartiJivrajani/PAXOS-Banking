@@ -92,8 +92,8 @@ func (server *Server) createTopology() {
 		d    time.Duration
 		b    = &backoff.Backoff{
 			//These are the defaults
-			Min:    100 * time.Millisecond,
-			Max:    10 * time.Second,
+			Min:    10 * time.Second,
+			Max:    1 * time.Minute,
 			Factor: 2,
 			Jitter: false,
 		}
@@ -226,7 +226,7 @@ func (server *Server) startListener() {
 
 func Start(id int) {
 	BlockChainServer = InitServer(id)
-	BlockChainServer.createTopology()
-
 	go BlockChainServer.startListener()
+
+	BlockChainServer.createTopology()
 }

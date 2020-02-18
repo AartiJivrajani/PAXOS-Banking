@@ -56,3 +56,8 @@ TODO:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Check the local balance, if amount sufficient, prepare a response and send back to the client. Add the current transaction
         to the local log.  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - If the local amount is insufficient to process the transaction, start a PAXOS run.   
+
+#### REDIS DATA MODEL
+Key: SERVER-BLOCKCHAIN-<id> Value: the committed blockchain
+Key: SERVER-LOG-<id> Value: uncommitted log
+
