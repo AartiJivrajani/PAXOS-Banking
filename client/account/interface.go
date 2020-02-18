@@ -20,7 +20,8 @@ func (client *Client) StartTransactions() {
 	for {
 		prompt := promptui.Select{
 			Label: "Select Transaction",
-			Items: []string{"Transaction", "Show Log", "Show Blockchain", "Show Balance", "Exit"},
+			Items: []string{common.TRANSACTION_MESSAGE, common.SHOW_LOG_MESSAGE, common.SHOW_BLOCKCHAIN_MESSAGE,
+				common.SHOW_BALANCE, common.EXIT_MESSAGE},
 		}
 
 		_, transactionType, err = prompt.Run()
@@ -34,16 +35,16 @@ func (client *Client) StartTransactions() {
 			"choice": transactionType,
 		}).Debug("You choose...")
 		switch transactionType {
-		case "Exit":
+		case common.EXIT_MESSAGE:
 			log.Debug("Fun doing business with you, see you soon!")
 			os.Exit(0)
 
-		case "Show Balance":
+		case common.SHOW_BALANCE:
 			message := &common.Message{
 				Type: transactionType,
 			}
 			SendRequestToServer(message)
-		case "Transfer":
+		case common.TRANSACTION_MESSAGE:
 			prompt := promptui.Prompt{
 				Label: "Receiver Client",
 			}

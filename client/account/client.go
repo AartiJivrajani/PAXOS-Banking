@@ -14,6 +14,7 @@ func StartClient(id int) {
 		Id:   id,
 		Port: common.ClientPortMap[id],
 	}
+	ClientAccount.StartTransactions()
 }
 
 // SendRequestToServer sends the request to server over HTTP and also
@@ -22,4 +23,5 @@ func StartClient(id int) {
 func SendRequestToServer(request *common.Message) {
 	// send the request to server as is. The server can decode
 	// the type of request and process it further
+
 }

@@ -8,6 +8,7 @@ const (
 	SHOW_LOG_MESSAGE        string = "Show Log"
 	SHOW_BLOCKCHAIN_MESSAGE string = "Show Blockchain"
 	SHOW_BALANCE            string = "Show Balance"
+	EXIT_MESSAGE            string = "Exit"
 )
 
 type TransferTxn struct {
@@ -28,4 +29,10 @@ type Message struct {
 type Block struct {
 	SeqNum       int        `json:"seq_num"`
 	Transactions *list.List `json:"transactions"`
+}
+
+type ClientResponse struct {
+	MessageType string `json:"message_type"`
+	Balance     int    `json:"balance"`
+	ClientId    int    `json:"client_id"`
 }

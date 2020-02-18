@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"PAXOS-Banking/common"
+	"PAXOS-Banking/utils"
 	"container/list"
 	"encoding/json"
 	"net"
@@ -145,12 +146,35 @@ func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.T
 	}
 }
 
+func (server *Server) processBalanceRequest(conn net.Conn) {
+	balance := server.getLocalBalance()
+	resp := &common.ClientResponse{
+		MessageType: common.SHOW_BALANCE,
+		Balance:     balance,
+		ClientId:    server.Id,
+	}
+	jResp, err := json.Marshal(resp)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+			"id":    server.Id,
+		}).Error("error marshalling the balance response")
+	}
+	_, _ = conn.Write(jResp)
+	return
+}
+
+func (server *Server) processElectionRequest(conn net.Conn, electionRequest *common.PrepareMessage) {
+
+}
+
 // handleIncomingConnections simply decodes the incoming requests
 // and forwards them to the right handlers
 func (server *Server) handleIncomingConnections(conn net.Conn) {
 	var (
 		request *common.Message
 		err     error
+		logStr  string
 	)
 	d := json.NewDecoder(conn)
 	for {
@@ -159,14 +183,21 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			continue
 		}
 		log.WithFields(log.Fields{
-			"request": request,
-		}).Debug("Request recvd from a client")
+			"request":      request,
+			"request_type": request.Type,
+		}).Debug("Request received from a client")
 		switch request.Type {
 		case common.TRANSACTION_MESSAGE:
-			go server.processTxnRequest(conn, request.TxnMessage)
+			server.processTxnRequest(conn, request.TxnMessage)
 		case common.PREPARE_MESSAGE:
-			go server.processElectionMessage(conn, request.PrepareMsg)
-
+			server.processElectionRequest(conn, request.PrepareMsg)
+		case common.SHOW_BALANCE:
+			server.processBalanceRequest(conn)
+		case common.SHOW_LOG_MESSAGE:
+			logStr = utils.GetLocalLogPrint(server.Log)
+			utils.PrettyPrint(logStr)
+		case common.SHOW_BLOCKCHAIN_MESSAGE:
+			logStr = utils.GetBlockchainPrint(server.Blockchain)
 		}
 	}
 }
