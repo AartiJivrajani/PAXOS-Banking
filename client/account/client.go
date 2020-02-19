@@ -2,7 +2,9 @@ package account
 
 import (
 	"PAXOS-Banking/common"
+	"PAXOS-Banking/utils"
 	"encoding/json"
+	"fmt"
 	"net"
 	"strconv"
 
@@ -21,7 +23,54 @@ func StartClient(id int) {
 		Id:   id,
 		Port: common.ClientPortMap[id],
 	}
-	ClientAccount.StartTransactions()
+	go ClientAccount.StartResponseListener()
+	go ClientAccount.StartTransactions()
+}
+
+func (client *Client) handleIncomingConnections(conn net.Conn) {
+	var (
+		err  error
+		resp *common.Response
+	)
+	d := json.NewDecoder(conn)
+	for {
+		err = d.Decode(&resp)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err.Error(),
+			}).Error("error decoding the response message received from the server")
+			continue
+		}
+		switch resp.MessageType {
+		case common.SHOW_LOG_MESSAGE:
+			utils.PrettyPrint(resp.ToBePrinted)
+		case common.SHOW_BLOCKCHAIN_MESSAGE:
+			utils.PrettyPrint(resp.ToBePrinted)
+		case common.SHOW_BALANCE:
+			utils.PrettyPrint(fmt.Sprintf("Balance: %d", resp.Balance))
+		}
+
+	}
+}
+
+func (client *Client) StartResponseListener() {
+	var (
+		err error
+	)
+	PORT := ":" + strconv.Itoa(common.ServerPortMap[client.Id])
+	listener, err := net.Listen("tcp", PORT)
+	if err != nil {
+		log.Error("error establishing connection to the server port, shutting down... ")
+		return
+	}
+	for {
+		c, err := listener.Accept()
+		if err != nil {
+			log.Error("error starting the server listener, shutting down...")
+			return
+		}
+		go client.handleIncomingConnections(c)
+	}
 }
 
 // SendRequestToServer sends the request to server over UDP and also

@@ -148,7 +148,7 @@ func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.T
 
 func (server *Server) processBalanceRequest(conn net.Conn) {
 	balance := server.getLocalBalance()
-	resp := &common.ClientResponse{
+	resp := &common.Response{
 		MessageType: common.SHOW_BALANCE,
 		Balance:     balance,
 		ClientId:    server.Id,
@@ -195,11 +195,41 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			server.processBalanceRequest(conn)
 		case common.SHOW_LOG_MESSAGE:
 			logStr = utils.GetLocalLogPrint(server.Log)
-			utils.PrettyPrint(logStr)
+			server.writeResponse(conn, &common.Response{
+				MessageType: common.SHOW_LOG_MESSAGE,
+				Balance:     0,
+				ClientId:    0,
+				ToBePrinted: logStr,
+			})
 		case common.SHOW_BLOCKCHAIN_MESSAGE:
 			logStr = utils.GetBlockchainPrint(server.Blockchain)
+			server.writeResponse(conn, &common.Response{
+				MessageType: common.SHOW_BLOCKCHAIN_MESSAGE,
+				Balance:     0,
+				ClientId:    0,
+				ToBePrinted: logStr,
+			})
 		}
 	}
+}
+
+// writeResponse sends a response back to the client
+func (server *Server) writeResponse(conn net.Conn, resp *common.Response) {
+	jResp, err := json.Marshal(resp)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+			"resp":  resp,
+		}).Error("error marshalling response message")
+		return
+	}
+	_, err = conn.Write(jResp)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("error sending response back to the client")
+	}
+	return
 }
 
 // startClientListener opens a connection to the servers' respective clients and listens to

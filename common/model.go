@@ -31,8 +31,9 @@ type Block struct {
 	Transactions *list.List `json:"transactions"`
 }
 
-type ClientResponse struct {
+type Response struct {
 	MessageType string `json:"message_type"`
-	Balance     int    `json:"balance"`
+	Balance     int    `json:"balance,omitempty"`
 	ClientId    int    `json:"client_id"`
+	ToBePrinted string `json:"to_be_printed,omitempty"`
 }

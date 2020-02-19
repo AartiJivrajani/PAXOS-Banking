@@ -9,6 +9,9 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
+// StartTransactions starts the user-interactive process
+// and accepts commands from the user. Based on the choice, the
+// request is forwarded to the server
 func (client *Client) StartTransactions() {
 	var (
 		err                       error

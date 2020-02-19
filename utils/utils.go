@@ -2,9 +2,8 @@ package utils
 
 import (
 	"PAXOS-Banking/common"
-	"fmt"
-	//"Replicated-Blockchain/common"
 	"container/list"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -13,8 +12,8 @@ import (
 )
 
 var (
-	Stars  = "*********************************************************************************************"
-	Dashes = "============================================================================================="
+	stars  = "*********************************************************************************************"
+	dashes = "============================================================================================="
 )
 
 func ConfigureLogger(level string) {
@@ -50,9 +49,9 @@ func GetLocalLogPrint(log *list.List) string {
 }
 
 func PrettyPrint(str string) {
-	log.Info(Stars)
+	log.Info(stars)
 	log.WithFields(log.Fields{
-		"localLog": str,
+		"message": str,
 	}).Info("local log")
-	log.Info(Stars)
+	log.Info(stars)
 }
