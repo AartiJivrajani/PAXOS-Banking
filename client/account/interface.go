@@ -43,7 +43,7 @@ func (client *Client) StartTransactions() {
 			message := &common.Message{
 				Type: transactionType,
 			}
-			SendRequestToServer(message)
+			client.SendRequestToServer(message)
 		case common.TRANSACTION_MESSAGE:
 			prompt := promptui.Prompt{
 				Label: "Receiver Client",
@@ -72,7 +72,7 @@ func (client *Client) StartTransactions() {
 				continue
 			}
 			amount, _ = strconv.Atoi(amountStr)
-			SendRequestToServer(&common.Message{
+			client.SendRequestToServer(&common.Message{
 				Type: common.TRANSACTION_MESSAGE,
 				TxnMessage: &common.TransferTxn{
 					Sender: client.Id,
