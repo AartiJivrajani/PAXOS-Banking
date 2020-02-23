@@ -211,8 +211,11 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 		case common.RECONCILE_SEQ_NUMBERS:
 			numReconcileSeqMessages += 1
 			seqNumbersRecvd = append(seqNumbersRecvd, request.ReconcileSeqMessage)
+			// only once the server receives 2 requests, should we process them.
 			if numReconcileSeqMessages == 2 {
 				waitForReconcileResponse <- seqNumbersRecvd
+				// reset the reconciliation counter
+				numReconcileSeqMessages = 0
 			}
 		case common.RECONCILE_REQ_MESSAGE:
 			server.handleReconcileRequestMessage(conn)
