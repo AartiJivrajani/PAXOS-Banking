@@ -83,6 +83,7 @@ func (client *Client) StartTransactions() {
 					Amount: amount,
 				},
 			})
+			<-showNextPrompt
 		}
 		//<-showNextPrompt
 	}

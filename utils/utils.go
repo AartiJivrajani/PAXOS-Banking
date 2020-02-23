@@ -96,3 +96,11 @@ func GetBlockChainFromArr(chain *common.BlockArrChain) *list.List {
 	}
 	return finalList
 }
+
+func LogToArray(l *list.List) []*common.TransferTxn {
+	finalArr := make([]*common.TransferTxn, 0)
+	for block := l.Front(); block != nil; block = block.Next() {
+		finalArr = append(finalArr, block.Value.(*common.TransferTxn))
+	}
+	return finalArr
+}

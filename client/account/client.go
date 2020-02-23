@@ -16,7 +16,10 @@ type Client struct {
 	Port int `json:"port"`
 }
 
-var ClientAccount *Client
+var (
+	ClientAccount  *Client
+	showNextPrompt = make(chan bool)
+)
 
 func StartClient(id int) {
 	ClientAccount = &Client{
@@ -42,6 +45,8 @@ func (client *Client) handleIncomingConnections(conn net.Conn) {
 			continue
 		}
 		switch resp.MessageType {
+		case common.SERVER_TXN_COMPLETE:
+			showNextPrompt <- true
 		case common.SHOW_LOG_MESSAGE:
 			utils.PrettyPrint(resp.ToBePrinted)
 		case common.SHOW_BLOCKCHAIN_MESSAGE:

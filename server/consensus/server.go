@@ -21,6 +21,7 @@ var (
 	BlockchainLock           sync.Mutex
 	BlockChainServer         *Server
 	waitForReconcileResponse = make(chan []*common.ReconcileSeqMessage)
+	moreAcceptRecvd          = make(chan bool)
 )
 
 type Server struct {
@@ -48,6 +49,8 @@ type Server struct {
 	RedisConn *redis.Client
 
 	Log *list.List
+
+	Ballot *common.Ballot
 }
 
 // InitServer creates a new server instance and initializes all its parameters
@@ -57,14 +60,18 @@ func InitServer(id int) *Server {
 		Id:         id,
 		Blockchain: list.New(),
 		Port:       common.ServerPortMap[id],
-		// we always start off with seq num = 1
-		SeqNum:           1,
+		// we always start off with seq num = 0
+		SeqNum:           0,
 		Status:           common.FOLLOWER,
 		AlreadyPromised:  false,
 		ServerConn:       make(map[int]net.Conn),
 		Peers:            make([]int, 0),
 		AssociatedClient: id,
 		Log:              list.New(),
+		Ballot: &common.Ballot{
+			BallotNum: 0,
+			ProcessId: id,
+		},
 	}
 	server.RedisConn = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
@@ -141,9 +148,15 @@ func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.T
 	runPaxos := server.checkIfTxnPossible(transferRequest)
 	if !runPaxos {
 		server.execLocalTxn(transferRequest)
+		resp := &common.Response{
+			MessageType: common.SERVER_TXN_COMPLETE,
+		}
+		jResp, _ := json.Marshal(resp)
+		_, _ = conn.Write(jResp)
 	} else {
 		server.execPaxosRun(transferRequest)
 	}
+
 }
 
 func (server *Server) processBalanceRequest(conn net.Conn) {
@@ -164,10 +177,6 @@ func (server *Server) processBalanceRequest(conn net.Conn) {
 	return
 }
 
-func (server *Server) processElectionRequest(conn net.Conn, electionRequest *common.PrepareMessage) {
-
-}
-
 // handleIncomingConnections simply decodes the incoming requests
 // and forwards them to the right handlers
 func (server *Server) handleIncomingConnections(conn net.Conn) {
@@ -177,6 +186,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 		logStr                  string
 		numReconcileSeqMessages int
 		seqNumbersRecvd         = make([]*common.ReconcileSeqMessage, 0)
+		peerLocalLogs           = make([]*common.AcceptedMessage, 0)
 	)
 	d := json.NewDecoder(conn)
 	for {
@@ -189,6 +199,29 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			"request_type": request.Type,
 		}).Debug("Request received from a client")
 		switch request.Type {
+		case common.COMMIT_MESSAGE:
+			server.updateBlockchain(request.BlockMessage)
+		case common.ACCEPTED_MESSAGE:
+			peerLocalLogs = append(peerLocalLogs, request.AcceptedMessage)
+			if server.validateBallotNumber(request.AcceptedMessage.Ballot.BallotNum) {
+				if !timerStarted {
+					go server.waitForAcceptedMessages()
+				}
+				if acceptedMsgTimeout {
+					server.processPeerLocalLogs(conn, peerLocalLogs)
+					peerLocalLogs = nil
+					peerLocalLogs = make([]*common.AcceptedMessage, 0)
+				}
+			}
+		case common.PREPARE_MESSAGE:
+			server.processElectionRequest(conn, request.ElectionMsg)
+		case common.ACCEPT_MESSAGE:
+			server.sendAllLocalLogs(conn)
+		case common.ELECTION_ACK_MESSAGE:
+			// Yay! You are a leader :D
+			if server.validateBallotNumber(request.ElectionMsg.Ballot.BallotNum) {
+				server.sendAcceptMessage(conn)
+			}
 		case common.RECONCILE_SEQ_NUMBERS:
 			numReconcileSeqMessages += 1
 			seqNumbersRecvd = append(seqNumbersRecvd, request.ReconcileSeqMessage)
@@ -204,8 +237,6 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			server.handleReconcileRequestMessage(conn)
 		case common.TRANSACTION_MESSAGE:
 			server.processTxnRequest(conn, request.TxnMessage)
-		case common.PREPARE_MESSAGE:
-			server.processElectionRequest(conn, request.PrepareMsg)
 		case common.SHOW_BALANCE:
 			server.processBalanceRequest(conn)
 		case common.SHOW_LOG_MESSAGE:
