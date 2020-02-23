@@ -49,7 +49,6 @@ func (client *Client) handleIncomingConnections(conn net.Conn) {
 		case common.SHOW_BALANCE:
 			utils.PrettyPrint(fmt.Sprintf("Balance: %d", resp.Balance))
 		}
-
 	}
 }
 
@@ -66,6 +65,8 @@ func (client *Client) StartResponseListener() {
 	for {
 		c, err := listener.Accept()
 		if err != nil {
+			// TODO: [Aarti] Have a back off and retry in this case. Cause lets say if some server went down
+			// and came back up again, we need this client listener to be alive again.
 			log.Error("error starting the server listener, shutting down...")
 			return
 		}

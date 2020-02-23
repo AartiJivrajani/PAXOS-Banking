@@ -9,6 +9,9 @@ const (
 	MAX_CLIENT_TIMEOUT int = 5
 	// number of seconds the client should sleep before initiating a server request once again
 	WAIT_SECONDS int = 10
+
+	REDIS_BLOCKCHAIN_KEY = "SERVER-BLOCKCHAIN-%d"
+	REDIS_LOG_KEY        = "SERVER-LOG-%d"
 )
 
 var ClientPortMap = map[int]int{
