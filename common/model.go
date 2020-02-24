@@ -48,7 +48,7 @@ type ElectionMessage struct {
 type BlockMessage struct {
 	SeqNum int `json:"seq_num"`
 	// TODO: fix me. Make this []*common.TransferTxns
-	Txns [][]int `json:"txns"`
+	Txns []*TransferTxn `json:"txns"`
 }
 
 type Message struct {
