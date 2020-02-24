@@ -57,15 +57,14 @@ func PrettyPrint(str string) {
 }
 
 // ListToArrays creates an array of arrays for all the blockchain transactions.
-// Something like this - [[sender, recrv, amount], [sender, recvr, amount]]
 func ListToArrays(l *list.List) []*common.TransferTxn {
 	finalList := make([]*common.TransferTxn, 0)
 	for block := l.Front(); block != nil; block = block.Next() {
 		txns := block.Value.(*list.List)
 		for txn := txns.Front(); txn != nil; txn = txn.Next() {
-			finalList = append(finalList, txn.Value.(*common.TransferTxn))	
+			finalList = append(finalList, txn.Value.(*common.TransferTxn))
 		}
-		
+
 	}
 	return finalList
 }

@@ -97,7 +97,7 @@ func (server *Server) processPeerLocalLogs(conn net.Conn, logs []*common.Accepte
 
 	txnArr := utils.ListToArrays(block.Transactions)
 	msg := common.Message{
-		Type:                common.COMMIT_MESSAGE,
+		Type: common.COMMIT_MESSAGE,
 		BlockMessage: &common.BlockMessage{
 			SeqNum: block.SeqNum,
 			Txns:   txnArr,
@@ -152,11 +152,11 @@ func (server *Server) sendAllLocalLogs(conn net.Conn) {
 
 func (server *Server) updateBlockchain(msg *common.BlockMessage) {
 	l := list.New()
-	for _, txn := range(msg.Txns){
+	for _, txn := range msg.Txns {
 		l.PushBack(txn)
 	}
 	block := &common.Block{
-		SeqNum: msg.SeqNum,
+		SeqNum:       msg.SeqNum,
 		Transactions: l,
 	}
 	server.Blockchain.PushBack(block)

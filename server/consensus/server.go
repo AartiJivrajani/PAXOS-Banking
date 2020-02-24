@@ -155,6 +155,7 @@ func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.T
 		_, _ = conn.Write(jResp)
 	} else {
 		server.execPaxosRun(transferRequest)
+		// TODO: What do we do with the current client's request
 	}
 
 }
