@@ -89,6 +89,49 @@ func InitServer(id int) *Server {
 	return server
 }
 
+func (server *Server) getClientConnection() net.Conn {
+	var (
+		conn net.Conn
+		err  error
+		d    time.Duration
+		b    = &backoff.Backoff{
+			Min:    10 * time.Second,
+			Max:    1 * time.Minute,
+			Factor: 2,
+			Jitter: false,
+		}
+	)
+	log.WithFields(log.Fields{
+		"serverId": server.Id,
+		"clientId": server.Id,
+	}).Debug("establishing connection to client")
+	PORT := ":" + strconv.Itoa(common.ClientPortMap[server.Id])
+	d = b.Duration()
+	for {
+		conn, err = net.Dial("tcp", PORT)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"serverId": server.Id,
+				"clientId": server.Id,
+				"error":    err.Error(),
+			}).Debug("error connecting to client")
+			if b.Attempt() <= common.MaxReconnectAttempts {
+				time.Sleep(d)
+				continue
+			} else {
+				log.Panic("error connecting to client, shutting down...")
+			}
+		} else {
+			log.WithFields(log.Fields{
+				"clientId": server.Id,
+				"serverId": server.Id,
+			}).Debug("connection established with client")
+			break
+		}
+	}
+	return conn
+}
+
 // createTopology establishes a connection between the server and all its peers
 // in case of a connection error, 3 re-connection attempts are made with exponential back-off
 // retry. Otherwise, an error is thrown and the process exits. The connections established with
@@ -236,13 +279,14 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			}
 		case common.RECONCILE_REQ_MESSAGE:
 			server.handleReconcileRequestMessage(conn)
+		//----------------------- MESSAGES RECEIVED FROM CLIENT -----------------------
 		case common.TRANSACTION_MESSAGE:
-			server.processTxnRequest(conn, request.TxnMessage)
+			server.processTxnRequest(server.getClientConnection(), request.TxnMessage)
 		case common.SHOW_BALANCE:
-			server.processBalanceRequest(conn)
+			server.processBalanceRequest(server.getClientConnection())
 		case common.SHOW_LOG_MESSAGE:
 			logStr = utils.GetLocalLogPrint(server.Log)
-			server.writeResponse(conn, &common.Response{
+			server.writeResponse(server.getClientConnection(), &common.Response{
 				MessageType: common.SHOW_LOG_MESSAGE,
 				Balance:     0,
 				ClientId:    0,
@@ -250,7 +294,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			})
 		case common.SHOW_BLOCKCHAIN_MESSAGE:
 			logStr = utils.GetBlockchainPrint(server.Blockchain)
-			server.writeResponse(conn, &common.Response{
+			server.writeResponse(server.getClientConnection(), &common.Response{
 				MessageType: common.SHOW_BLOCKCHAIN_MESSAGE,
 				Balance:     0,
 				ClientId:    0,

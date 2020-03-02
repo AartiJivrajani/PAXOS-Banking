@@ -52,6 +52,7 @@ func (client *Client) handleIncomingConnections(conn net.Conn) {
 		case common.SHOW_BLOCKCHAIN_MESSAGE:
 			utils.PrettyPrint(resp.ToBePrinted)
 		case common.SHOW_BALANCE:
+			log.Info("received show balance resp from server")
 			utils.PrettyPrint(fmt.Sprintf("Balance: %d", resp.Balance))
 		}
 	}
@@ -61,10 +62,12 @@ func (client *Client) StartResponseListener() {
 	var (
 		err error
 	)
-	PORT := ":" + strconv.Itoa(common.ServerPortMap[client.Id])
+	PORT := ":" + strconv.Itoa(common.ClientPortMap[client.Id])
 	listener, err := net.Listen("tcp", PORT)
 	if err != nil {
-		log.Error("error establishing connection to the server port, shutting down... ")
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("error establishing connection to the server port, shutting down... ")
 		return
 	}
 	for {
@@ -79,6 +82,28 @@ func (client *Client) StartResponseListener() {
 	}
 }
 
+//func (client *Client) startConnectionRead(conn net.Conn) {
+//	var (
+//		resp *common.Response
+//	)
+//	for {
+//		cmd, err := conn.Read(resp)
+//		if err == io.EOF {
+//			break
+//		} else if err != nil {
+//			log.Printf("Read error %v", err)
+//		}
+//		if cmd != nil {
+//			switch v := cmd.(type) {
+//			case protocol.MessageCommand:
+//				c.incoming <- v
+//			default:
+//				log.Printf("Unknown command: %v", v)
+//			}
+//		}
+//	}
+//}
+
 // SendRequestToServer sends the request to server over UDP and also
 // starts a timer. If the timer times out in `MAX_CLIENT_TIMEOUT`, sleep for `WAIT_SECONDS`
 // and send the request again
@@ -88,7 +113,7 @@ func (client *Client) SendRequestToServer(request *common.Message) {
 	// the type of request and process it further
 	PORT := ":" + strconv.Itoa(common.ServerPortMap[client.Id])
 	conn, err := net.Dial("tcp", PORT)
-
+	//go client.startConnectionRead(conn)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":    err.Error(),
