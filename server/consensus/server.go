@@ -22,6 +22,7 @@ var (
 	BlockChainServer         *Server
 	waitForReconcileResponse = make(chan []*common.ReconcileSeqMessage)
 	moreAcceptRecvd          = make(chan bool)
+	peerLocalLogs            = make([]*common.AcceptedMessage, 0)
 )
 
 type Server struct {
@@ -229,7 +230,6 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 		logStr                  string
 		numReconcileSeqMessages int
 		seqNumbersRecvd         = make([]*common.ReconcileSeqMessage, 0)
-		peerLocalLogs           = make([]*common.AcceptedMessage, 0)
 	)
 	d := json.NewDecoder(conn)
 	for {
@@ -240,30 +240,38 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 		log.WithFields(log.Fields{
 			"request":      request,
 			"request_type": request.Type,
-		}).Debug("Request received from a client")
+		}).Debug("Request received")
 		switch request.Type {
 		case common.COMMIT_MESSAGE:
 			server.updateBlockchain(request.BlockMessage)
-		case common.ACCEPTED_MESSAGE:
+		case common.ELECTION_ACCEPTED_MESSAGE:
 			peerLocalLogs = append(peerLocalLogs, request.AcceptedMessage)
 			if server.validateBallotNumber(request.AcceptedMessage.Ballot.BallotNum) {
 				if !timerStarted {
+					log.Info("starting timer(waiting for all ACCEPTED messages)")
 					go server.waitForAcceptedMessages()
-				}
-				if acceptedMsgTimeout {
-					server.processPeerLocalLogs(conn, peerLocalLogs)
-					peerLocalLogs = nil
-					peerLocalLogs = make([]*common.AcceptedMessage, 0)
+					time.Sleep(3 * time.Second)
+					go func() {
+						for {
+							if acceptedMsgTimeout {
+								log.Info("time out!")
+								server.processPeerLocalLogs(peerLocalLogs)
+								peerLocalLogs = nil
+								peerLocalLogs = make([]*common.AcceptedMessage, 0)
+								break
+							}
+						}
+					}()
 				}
 			}
-		case common.PREPARE_MESSAGE:
+		case common.ELECTION_PREPARE_MESSAGE:
 			server.processPrepareMessage(conn, request)
-		case common.ACCEPT_MESSAGE:
-			server.sendAllLocalLogs(conn)
-		case common.ELECTION_ACK_MESSAGE:
+		case common.ELECTION_ACCEPT_MESSAGE:
+			server.sendAllLocalLogs(request)
+		case common.ELECTION_PROMISE_MESSAGE:
 			// Yay! You are a leader :D
 			if server.validateBallotNumber(request.ElectionMsg.Ballot.BallotNum) {
-				server.sendAcceptMessage(conn)
+				server.sendAcceptMessage()
 			}
 		case common.RECONCILE_SEQ_NUMBERS:
 			numReconcileSeqMessages += 1
