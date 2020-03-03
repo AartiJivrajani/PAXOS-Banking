@@ -237,7 +237,6 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			continue
 		}
 		log.WithFields(log.Fields{
-			"request":      request,
 			"request_type": request.Type,
 			"fromId":       request.FromId,
 		}).Debug("Request received")
