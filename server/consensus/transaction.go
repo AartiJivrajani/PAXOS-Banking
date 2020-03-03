@@ -3,7 +3,6 @@ package consensus
 import (
 	"PAXOS-Banking/common"
 	"PAXOS-Banking/utils"
-	"container/list"
 	"fmt"
 )
 
@@ -12,9 +11,9 @@ import (
 func (server *Server) getBalance() int {
 	balance := 100
 	for block := server.Blockchain.Front(); block != nil; block = block.Next() {
-		txns := block.Value.(*list.List)
+		txns := block.Value.(*common.Block)
 		// each block has multiple transactions
-		for txn := txns.Front(); txn != nil; txn = txn.Next() {
+		for txn := txns.Transactions.Front(); txn != nil; txn = txn.Next() {
 			if txn.Value.(*common.TransferTxn).Recvr == server.AssociatedClient {
 				balance += txn.Value.(*common.TransferTxn).Amount
 			}

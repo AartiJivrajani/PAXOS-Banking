@@ -60,8 +60,8 @@ func PrettyPrint(str string) {
 func ListToArrays(l *list.List) []*common.TransferTxn {
 	finalList := make([]*common.TransferTxn, 0)
 	for block := l.Front(); block != nil; block = block.Next() {
-		txns := block.Value.(*list.List)
-		for txn := txns.Front(); txn != nil; txn = txn.Next() {
+		txns := block.Value.(*common.Block)
+		for txn := txns.Transactions.Front(); txn != nil; txn = txn.Next() {
 			finalList = append(finalList, txn.Value.(*common.TransferTxn))
 		}
 
