@@ -44,17 +44,20 @@ func (client *Client) StartTransactions() {
 
 		case common.SHOW_BALANCE:
 			message := &common.Message{
-				Type: transactionType,
+				FromId: client.Id,
+				Type:   transactionType,
 			}
 			client.SendRequestToServer(message)
 		case common.SHOW_LOG_MESSAGE:
 			message := &common.Message{
-				Type: transactionType,
+				FromId: client.Id,
+				Type:   transactionType,
 			}
 			client.SendRequestToServer(message)
 		case common.SHOW_BLOCKCHAIN_MESSAGE:
 			message := &common.Message{
-				Type: transactionType,
+				FromId: client.Id,
+				Type:   transactionType,
 			}
 			client.SendRequestToServer(message)
 		case common.TRANSACTION_MESSAGE:
@@ -86,7 +89,8 @@ func (client *Client) StartTransactions() {
 			}
 			amount, _ = strconv.Atoi(amountStr)
 			client.SendRequestToServer(&common.Message{
-				Type: common.TRANSACTION_MESSAGE,
+				FromId: client.Id,
+				Type:   common.TRANSACTION_MESSAGE,
 				TxnMessage: &common.TransferTxn{
 					Sender: client.Id,
 					Recvr:  receiverClientId,

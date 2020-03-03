@@ -20,7 +20,8 @@ func (server *Server) handleReconcileRequestMessage(conn net.Conn) {
 		seqNumbers = append(seqNumbers, block.Value.(*common.Block).SeqNum)
 	}
 	resp := &common.Message{
-		Type: common.RECONCILE_SEQ_NUMBERS,
+		FromId: server.Id,
+		Type:   common.RECONCILE_SEQ_NUMBERS,
 		ReconcileSeqMessage: &common.ReconcileSeqMessage{
 			Id:                  server.Id,
 			ReconcileSeqNumbers: seqNumbers,
@@ -37,7 +38,8 @@ func (server *Server) sendReconcileRequest() {
 	for _, peer := range server.Peers {
 		if server.ServerConn[peer] != nil {
 			request = &common.Message{
-				Type: common.RECONCILE_REQ_MESSAGE,
+				FromId: server.Id,
+				Type:   common.RECONCILE_REQ_MESSAGE,
 			}
 			jReq, _ := json.Marshal(request)
 			_, _ = server.ServerConn[peer].Write(jReq)

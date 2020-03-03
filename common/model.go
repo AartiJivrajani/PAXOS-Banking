@@ -3,8 +3,13 @@ package common
 import "container/list"
 
 const (
+	ELECTION_PREPARE_MESSAGE  string = "PREPARE"
+	ELECTION_PROMISE_MESSAGE  string = "PROMISE"
+	ELECTION_ACCEPT_MESSAGE   string = "ACCEPT"
+	ELECTION_ACCEPTED_MESSAGE string = "ACCEPTED"
+	COMMIT_MESSAGE            string = "COMMIT"
+
 	TRANSACTION_MESSAGE     string = "Transaction"
-	PREPARE_MESSAGE         string = "Prepare"
 	SHOW_LOG_MESSAGE        string = "Show Log"
 	SHOW_BLOCKCHAIN_MESSAGE string = "Show Blockchain"
 	SHOW_BALANCE            string = "Show Balance"
@@ -12,10 +17,7 @@ const (
 	RECONCILE_REQ_MESSAGE   string = "Reconcile Request"
 	RECONCILE_SEQ_NUMBERS   string = "Reconcile Seq Numbers"
 	SERVER_TXN_COMPLETE     string = "Server Side Txn Complete"
-	ELECTION_ACK_MESSAGE    string = "Leader Election Ack Message"
-	ACCEPT_MESSAGE          string = "Election Accept Message"
-	ACCEPTED_MESSAGE        string = "PAXOS Accepted Message"
-	COMMIT_MESSAGE          string = "New Block Message"
+	INSUFFICIENT_FUNDS      string = "Insufficient Funds"
 )
 
 type TransferTxn struct {
@@ -41,7 +43,6 @@ type Ballot struct {
 }
 
 type ElectionMessage struct {
-	FromId int     `json:"from_id"`
 	Type   string  `json:"message_type"`
 	Ballot *Ballot `json:"ballot"`
 }
@@ -53,6 +54,7 @@ type BlockMessage struct {
 }
 
 type Message struct {
+	FromId              int                  `json:"from_id"`
 	Type                string               `json:"message_type"`
 	TxnMessage          *TransferTxn         `json:"transaction_message,omitempty"`
 	ElectionMsg         *ElectionMessage     `json:"election_message,omitempty"`
