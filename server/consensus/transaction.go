@@ -59,7 +59,7 @@ func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
 func (server *Server) execLocalTxn(txn *common.TransferTxn) {
 	server.Log.PushBack(txn)
 
-	// update the local log in redis as well
+	// TODO: update the local log in redis as well
 	arr := utils.LogToArray(server.Log)
 	server.RedisConn.Set(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id), arr, 0)
 }
