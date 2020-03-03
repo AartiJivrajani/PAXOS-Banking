@@ -2,7 +2,10 @@ package consensus
 
 import (
 	"PAXOS-Banking/common"
+	"PAXOS-Banking/utils"
 	"fmt"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // getBalance gets the balance from the transactions in the block chain
@@ -38,12 +41,23 @@ func (server *Server) getLocalBalance() int {
 	return balance
 }
 
-// checkIfTxnPossible fetches the client's current balance from the server's local
+// checkIfTxnPossible fetches the client's current balance from the server's local log AND
 // block chain. If this balance is greater than the amount to be transacted, a PAXOS run
 // is not required, else, it is
 func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
+	log.Info("checking if transaction is possible")
+	blockchainPrint := utils.GetBlockchainPrint(server.Blockchain)
 	balance := server.getLocalBalance()
-	if balance > txn.Amount || balance < 0 {
+	log.WithFields(log.Fields{
+		"currentLocalLog": utils.GetLocalLogPrint(server.Log),
+		"blockchain":      blockchainPrint,
+		"newTxn":          txn,
+		"balance":         balance,
+	}).Info("checking possibility......")
+	if balance < 0 {
+		return false
+	}
+	if balance > txn.Amount {
 		return false
 	} else {
 		return true

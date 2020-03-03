@@ -2,7 +2,6 @@ package utils
 
 import (
 	"PAXOS-Banking/common"
-	"container/list"
 	"os"
 	"strconv"
 	"strings"
@@ -32,18 +31,21 @@ func ConfigureLogger(level string) {
 func GetBlockchainPrint(blockchain []*common.Block) string {
 	var l string
 	for i, block := range blockchain {
-		l += "["
+		if i == 0 {
+			l += "["
+		}
 		for j, txn := range block.Transactions {
-			l = l + "(" + strconv.Itoa(txn.Sender) + ":" + strconv.Itoa(txn.Recvr) + ":" + strconv.Itoa(txn.Amount) +
-				")"
-			if j != len(block.Transactions)-1 {
+			l = l + "(" + strconv.Itoa(txn.Sender) + ":" + strconv.Itoa(txn.Recvr) + ":" +
+				strconv.Itoa(txn.Amount) + ")"
+			if j < len(block.Transactions)-1 {
 				l = l + "->"
 			}
 		}
-		if i != len(blockchain)-1 {
+		if i < len(blockchain)-1 {
 			l = l + "->"
 		}
 	}
+	l += "]"
 	return l
 }
 
@@ -54,15 +56,11 @@ func GetLocalLogPrint(log []*common.TransferTxn) string {
 	for index, txn := range log {
 		l = l + "(" + strconv.Itoa(txn.Sender) + ":" + strconv.Itoa(txn.Recvr) +
 			":" + strconv.Itoa(txn.Amount) + ")"
-		if index != len(log)-1 {
+		if index < len(log)-1 {
 			l = l + "->"
 		}
 	}
 	return l
-}
-
-func GetArrayPrint(arr []*common.TransferTxn) string {
-	return ""
 }
 
 func PrettyPrint(str string) {
@@ -71,18 +69,6 @@ func PrettyPrint(str string) {
 		"message": str,
 	}).Info("local log")
 	log.Info(stars)
-}
-
-// ListToArrays creates an array of arrays for all the blockchain transactions.
-func ListToArrays(l *list.List) []*common.TransferTxn {
-	finalList := make([]*common.TransferTxn, 0)
-	for block := l.Front(); block != nil; block = block.Next() {
-		txns := block.Value.(*list.List)
-		for txn := txns.Front(); txn != nil; txn = txn.Next() {
-			finalList = append(finalList, txn.Value.(*common.TransferTxn))
-		}
-	}
-	return finalList
 }
 
 //func GetBlockChainFromArr(chain *common.BlockArrChain) *list.List {
