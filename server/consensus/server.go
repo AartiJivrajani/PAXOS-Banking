@@ -200,7 +200,6 @@ func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.T
 		server.execPaxosRun(transferRequest)
 		// TODO: What do we do with the current client's request
 	}
-
 }
 
 func (server *Server) processBalanceRequest(conn net.Conn) {
@@ -258,7 +257,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				}
 			}
 		case common.PREPARE_MESSAGE:
-			server.processElectionRequest(conn, request.ElectionMsg)
+			server.processPrepareMessage(conn, request.ElectionMsg)
 		case common.ACCEPT_MESSAGE:
 			server.sendAllLocalLogs(conn)
 		case common.ELECTION_ACK_MESSAGE:

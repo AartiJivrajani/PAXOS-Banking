@@ -40,7 +40,7 @@ func GetLocalLogPrint(log *list.List) string {
 	var l string
 	for block := log.Front(); block != nil; block = block.Next() {
 		l = l + strconv.Itoa(block.Value.(*common.TransferTxn).Sender) + ":" + strconv.Itoa(block.Value.(*common.TransferTxn).Recvr) +
-			":" + fmt.Sprintf("%g", block.Value.(*common.TransferTxn).Amount)
+			":" + fmt.Sprintf("%d", block.Value.(*common.TransferTxn).Amount)
 		if block.Next() != nil {
 			l = l + "->"
 		}

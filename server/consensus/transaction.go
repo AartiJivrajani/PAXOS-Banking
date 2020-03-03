@@ -63,9 +63,3 @@ func (server *Server) execLocalTxn(txn *common.TransferTxn) {
 	arr := utils.LogToArray(server.Log)
 	server.RedisConn.Set(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id), arr, 0)
 }
-
-// execPaxosRun initiates a PAXOS run and then adds the transaction to the local block chain
-func (server *Server) execPaxosRun(txn *common.TransferTxn) {
-	// 1. perform leader election
-	server.getElected()
-}
