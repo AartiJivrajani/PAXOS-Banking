@@ -50,6 +50,11 @@ func (client *Client) handleIncomingConnections(conn net.Conn) {
 				"msg": resp.MessageType,
 			}).Info("message received from the server")
 			showNextPrompt <- true
+		case common.INSUFFICIENT_FUNDS:
+			log.WithFields(log.Fields{
+				"msg": resp.MessageType,
+			}).Info("message received from the server")
+			showNextPrompt <- true
 		case common.SHOW_LOG_MESSAGE:
 			utils.PrettyPrint(resp.ToBePrinted)
 		case common.SHOW_BLOCKCHAIN_MESSAGE:

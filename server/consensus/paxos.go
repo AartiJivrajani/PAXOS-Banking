@@ -148,7 +148,12 @@ func (server *Server) sendResponseToClientAfterPaxos() {
 		}
 	}
 	jResp, _ = json.Marshal(clientResponse)
-	_, _ = server.getClientConnection().Write(jResp)
+	_, err := server.getClientConnection().Write(jResp)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("error writing message to client")
+	}
 	// invalidate the clientTxn after sending response to the client.
 	clientTxn = nil
 }
