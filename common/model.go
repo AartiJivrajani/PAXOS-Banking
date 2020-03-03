@@ -41,6 +41,7 @@ type Ballot struct {
 }
 
 type ElectionMessage struct {
+	FromId int     `json:"from_id"`
 	Type   string  `json:"message_type"`
 	Ballot *Ballot `json:"ballot"`
 }
