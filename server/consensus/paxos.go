@@ -4,6 +4,7 @@ import (
 	"PAXOS-Banking/common"
 	"PAXOS-Banking/utils"
 	"encoding/json"
+	"fmt"
 	"net"
 	"time"
 
@@ -113,9 +114,9 @@ func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
 
 	msg := common.Message{
 		Type: common.COMMIT_MESSAGE,
-		BlockMessage: &common.BlockMessage{
-			SeqNum: server.SeqNum + 1,
-			Txns:   block.Transactions,
+		BlockMessage: &common.Block{
+			SeqNum:       server.SeqNum + 1,
+			Transactions: block.Transactions,
 		},
 	}
 	jMsg, _ := json.Marshal(msg)
@@ -209,12 +210,19 @@ func (server *Server) sendAllLocalLogs(msg *common.Message) {
 	_, _ = server.ServerConn[msg.FromId].Write(jMsg)
 }
 
-func (server *Server) updateBlockchain(msg *common.BlockMessage) {
+func (server *Server) updateBlockchain(msg *common.Block) {
 	block := &common.Block{
 		SeqNum:       msg.SeqNum,
-		Transactions: msg.Txns,
+		Transactions: msg.Transactions,
 	}
 	server.Blockchain = append(server.Blockchain, block)
+	jBlock, _ := json.Marshal(server.Blockchain)
+	_, err := server.RedisConn.Set(fmt.Sprintf(common.REDIS_BLOCKCHAIN_KEY, server.Id), jBlock, 0).Result()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("error inserting the blockchain to redis")
+	}
 	log.WithFields(log.Fields{
 		"chain": utils.GetBlockchainPrint(server.Blockchain),
 	}).Info("created block from new txns recvd")
