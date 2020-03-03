@@ -257,7 +257,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				}
 			}
 		case common.PREPARE_MESSAGE:
-			server.processPrepareMessage(conn, request.ElectionMsg)
+			server.processPrepareMessage(conn, request)
 		case common.ACCEPT_MESSAGE:
 			server.sendAllLocalLogs(conn)
 		case common.ELECTION_ACK_MESSAGE:

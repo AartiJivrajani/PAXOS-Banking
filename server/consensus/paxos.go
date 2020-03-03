@@ -34,9 +34,9 @@ func (server *Server) getElected() {
 	server.Ballot.BallotNum += 1
 	// send a prepare message to all the servers
 	msg := &common.Message{
-		Type: common.PREPARE_MESSAGE,
+		FromId: server.Id,
+		Type:   common.PREPARE_MESSAGE,
 		ElectionMsg: &common.ElectionMessage{
-			FromId: server.Id,
 			Type:   common.PREPARE_MESSAGE,
 			Ballot: server.Ballot,
 		},
@@ -60,10 +60,10 @@ func (server *Server) broadcastMessages(msg []byte, msgType string) {
 
 func (server *Server) sendAcceptMessage(conn net.Conn) {
 	msg := &common.Message{
+		FromId:     server.Id,
 		Type:       common.ACCEPT_MESSAGE,
 		TxnMessage: nil,
 		ElectionMsg: &common.ElectionMessage{
-			FromId: server.Id,
 			Type:   common.ACCEPT_MESSAGE,
 			Ballot: nil,
 		},
@@ -121,21 +121,21 @@ func (server *Server) processPeerLocalLogs(conn net.Conn, logs []*common.Accepte
 
 // processPrepareMessage allows the server to decide if it should
 // elect a new leader and join its ballot.
-func (server *Server) processPrepareMessage(conn net.Conn, msg *common.ElectionMessage) {
-	if msg.Ballot.BallotNum >= server.Ballot.BallotNum {
+func (server *Server) processPrepareMessage(conn net.Conn, msg *common.Message) {
+	if msg.ElectionMsg.Ballot.BallotNum >= server.Ballot.BallotNum {
 		log.WithFields(log.Fields{
 			"current Ballot Number": server.Ballot.BallotNum,
-			"new Ballot Number":     msg.Ballot.BallotNum,
+			"new Ballot Number":     msg.ElectionMsg.Ballot.BallotNum,
 			"Id":                    server.Id,
 		}).Info("received prepare request from a higher ballot number")
 
-		server.Ballot.BallotNum = msg.Ballot.BallotNum
+		server.Ballot.BallotNum = msg.ElectionMsg.Ballot.BallotNum
 		ackMsg := common.Message{
-			Type: common.ELECTION_ACK_MESSAGE,
+			FromId: server.Id,
+			Type:   common.ELECTION_ACK_MESSAGE,
 			ElectionMsg: &common.ElectionMessage{
-				FromId: server.Id,
 				Type:   common.ELECTION_ACK_MESSAGE,
-				Ballot: msg.Ballot,
+				Ballot: msg.ElectionMsg.Ballot,
 			},
 		}
 		jAckMsg, _ := json.Marshal(ackMsg)
@@ -163,6 +163,7 @@ func (server *Server) sendAllLocalLogs(conn net.Conn) {
 		//SeqNum: 0, // TODO: Do we need this?
 	}
 	msg := &common.Message{
+		FromId:          server.Id,
 		Type:            common.ACCEPTED_MESSAGE,
 		AcceptedMessage: accMsg,
 	}

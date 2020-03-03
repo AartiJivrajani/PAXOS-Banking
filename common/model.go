@@ -41,7 +41,6 @@ type Ballot struct {
 }
 
 type ElectionMessage struct {
-	FromId int     `json:"from_id"`
 	Type   string  `json:"message_type"`
 	Ballot *Ballot `json:"ballot"`
 }
@@ -53,6 +52,7 @@ type BlockMessage struct {
 }
 
 type Message struct {
+	FromId              int                  `json:"from_id"`
 	Type                string               `json:"message_type"`
 	TxnMessage          *TransferTxn         `json:"transaction_message,omitempty"`
 	ElectionMsg         *ElectionMessage     `json:"election_message,omitempty"`
