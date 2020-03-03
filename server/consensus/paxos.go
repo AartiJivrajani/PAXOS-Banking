@@ -93,32 +93,37 @@ func (server *Server) waitForAcceptedMessages() {
 func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
 	block := &common.Block{
 		SeqNum:       server.SeqNum + 1,
-		Transactions: list.New(),
+		Transactions: make([]*common.TransferTxn, 0),
 	}
-	for _, localLog := range logs {
-		innerList := list.New()
-		for _, elem := range localLog.Txns {
-			innerList.PushBack(elem)
-		}
-		block.Transactions.PushBack(innerList)
-	}
-	block.Transactions.PushBack(server.Log)
-	log.WithFields(log.Fields{
-		"blockchain": utils.GetLocalLogPrint(server.Log),
-		"id":         server.Id,
-	}).Info("current state of the server")
 
-	txnArr := utils.ListToArrays(block.Transactions)
+	for _, localTxns := range logs {
+		for _, txn := range localTxns.Txns {
+			block.Transactions = append(block.Transactions, txn)
+		}
+	}
+
+	// TODO: Confirm this logic once?
+	// add the server's own local log as well
+	for _, txn := range server.Log {
+		block.Transactions = append(block.Transactions, txn)
+	}
+	log.WithFields(log.Fields{
+		"local log": utils.GetLocalLogPrint(server.Log),
+		"id":        server.Id,
+	}).Info("current local state of the server, after paxos")
+
 	msg := common.Message{
 		Type: common.COMMIT_MESSAGE,
 		BlockMessage: &common.BlockMessage{
-			SeqNum: block.SeqNum,
-			Txns:   txnArr,
+			SeqNum: server.SeqNum + 1,
+			Txns:   block.Transactions,
 		},
 	}
 	jMsg, _ := json.Marshal(msg)
 	server.broadcastMessages(jMsg, common.COMMIT_MESSAGE)
-
+	// TODO: !!! Confirm this logic once
+	// add the newly created block to the server itself.
+	server.Blockchain = append(server.Blockchain, block)
 	// PHEW! PAXOS IS DONE! finally, send a response to the client.
 	server.sendResponseToClientAfterPaxos()
 }
@@ -129,6 +134,8 @@ func (server *Server) sendResponseToClientAfterPaxos() {
 		clientResponse *common.Response
 		jResp          []byte
 	)
+	// evict the local transactions now, since they are already in a block.
+	server.Log = make([]*common.TransferTxn, 0)
 	if server.checkIfTxnPossible(clientTxn) {
 		server.execLocalTxn(clientTxn)
 		clientResponse = &common.Response{
@@ -180,9 +187,8 @@ func (server *Server) processPrepareMessage(conn net.Conn, msg *common.Message) 
 }
 
 func (server *Server) sendAllLocalLogs(msg *common.Message) {
-	logs := utils.LogToArray(server.Log)
 	accMsg := &common.AcceptedMessage{
-		Txns: logs,
+		Txns: server.Log,
 		// TODO: which ballot number is this? are we sure its the peer's ballot number since we
 		//assume that post election, both the leader and peer ballot number would be the same?
 		Ballot: server.Ballot,
@@ -199,17 +205,21 @@ func (server *Server) sendAllLocalLogs(msg *common.Message) {
 
 func (server *Server) updateBlockchain(msg *common.BlockMessage) {
 	l := list.New()
+	log.WithFields(log.Fields{
+		"block": msg.Txns,
+	}).Info("received block in commit message")
 	for _, txn := range msg.Txns {
+		log.Info(txn.Amount)
 		l.PushBack(txn)
 	}
 	block := &common.Block{
 		SeqNum:       msg.SeqNum,
-		Transactions: l,
+		Transactions: msg.Txns,
 	}
+	server.Blockchain = append(server.Blockchain, block)
 	log.WithFields(log.Fields{
-		"chain": utils.GetBlockchainPrint(l),
+		"chain": utils.GetBlockchainPrint(server.Blockchain),
 	}).Info("created block from new txns recvd")
-	server.Blockchain.PushBack(block)
 }
 
 // execPaxosRun initiates a PAXOS run and then adds the transaction to the local block chain

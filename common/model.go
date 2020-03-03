@@ -1,7 +1,5 @@
 package common
 
-import "container/list"
-
 const (
 	ELECTION_PREPARE_MESSAGE  string = "PREPARE"
 	ELECTION_PROMISE_MESSAGE  string = "PROMISE"
@@ -48,9 +46,8 @@ type ElectionMessage struct {
 }
 
 type BlockMessage struct {
-	SeqNum int `json:"seq_num"`
-	// TODO: fix me. Make this []*common.TransferTxns
-	Txns []*TransferTxn `json:"txns"`
+	SeqNum int            `json:"seq_num"`
+	Txns   []*TransferTxn `json:"txns"`
 }
 
 type Message struct {
@@ -66,7 +63,7 @@ type Message struct {
 type Block struct {
 	SeqNum int `json:"seq_num"`
 	// each element in this list of lists is a transfer transaction
-	Transactions *list.List `json:"transactions"`
+	Transactions []*TransferTxn `json:"transactions"`
 }
 
 type Response struct {

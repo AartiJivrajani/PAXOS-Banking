@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"PAXOS-Banking/common"
-	"PAXOS-Banking/utils"
 	"fmt"
 )
 
@@ -10,15 +9,13 @@ import (
 // this does not account for the uncommitted transactions in the local log
 func (server *Server) getBalance() int {
 	balance := 100
-	for block := server.Blockchain.Front(); block != nil; block = block.Next() {
-		txns := block.Value.(*common.Block)
-		// each block has multiple transactions
-		for txn := txns.Transactions.Front(); txn != nil; txn = txn.Next() {
-			if txn.Value.(*common.TransferTxn).Recvr == server.AssociatedClient {
-				balance += txn.Value.(*common.TransferTxn).Amount
+	for _, block := range server.Blockchain {
+		for _, txn := range block.Transactions {
+			if txn.Recvr == server.AssociatedClient {
+				balance += txn.Amount
 			}
-			if txn.Value.(*common.TransferTxn).Sender == server.AssociatedClient {
-				balance -= txn.Value.(*common.TransferTxn).Amount
+			if txn.Sender == server.AssociatedClient {
+				balance -= txn.Amount
 			}
 		}
 	}
@@ -30,13 +27,12 @@ func (server *Server) getBalance() int {
 // 2. The server's local log
 func (server *Server) getLocalBalance() int {
 	balance := server.getBalance()
-
-	for block := server.Log.Front(); block != nil; block = block.Next() {
-		if block.Value.(*common.TransferTxn).Recvr == server.AssociatedClient {
-			balance += block.Value.(*common.TransferTxn).Amount
+	for _, txn := range server.Log {
+		if txn.Recvr == server.AssociatedClient {
+			balance += txn.Amount
 		}
-		if block.Value.(*common.TransferTxn).Sender == server.AssociatedClient {
-			balance -= block.Value.(*common.TransferTxn).Amount
+		if txn.Sender == server.AssociatedClient {
+			balance -= txn.Amount
 		}
 	}
 	return balance
@@ -46,8 +42,8 @@ func (server *Server) getLocalBalance() int {
 // block chain. If this balance is greater than the amount to be transacted, a PAXOS run
 // is not required, else, it is
 func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
-	balance := server.getBalance()
-	if balance > txn.Amount {
+	balance := server.getLocalBalance()
+	if balance > txn.Amount || balance < 0 {
 		return false
 	} else {
 		return true
@@ -56,9 +52,8 @@ func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
 
 // execLocalTxn carries out the transaction locally and saves the record in the local blockchain
 func (server *Server) execLocalTxn(txn *common.TransferTxn) {
-	server.Log.PushBack(txn)
+	server.Log = append(server.Log, txn)
 
 	// TODO: update the local log in redis as well
-	arr := utils.LogToArray(server.Log)
-	server.RedisConn.Set(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id), arr, 0)
+	server.RedisConn.Set(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id), server.Log, 0)
 }

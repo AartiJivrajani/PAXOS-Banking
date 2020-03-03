@@ -3,7 +3,6 @@ package consensus
 import (
 	"PAXOS-Banking/common"
 	"PAXOS-Banking/utils"
-	"container/list"
 	"encoding/json"
 	"net"
 	"strconv"
@@ -21,15 +20,15 @@ var (
 	BlockchainLock           sync.Mutex
 	BlockChainServer         *Server
 	waitForReconcileResponse = make(chan []*common.ReconcileSeqMessage)
-	moreAcceptRecvd          = make(chan bool)
 	peerLocalLogs            = make([]*common.AcceptedMessage, 0)
+	recvdAcceptMsgMap        = make(map[int]bool)
 )
 
 type Server struct {
 	Id int `json:"id"`
 	// log maintained by the server
-	Blockchain *list.List `json:"blockchain"`
-	Port       int        `json:"port"`
+	Blockchain []*common.Block `json:"blockchain"`
+	Port       int             `json:"port"`
 
 	// SeqNum + id are used to distinguish among values proposed by different leaders
 	// This SeqNum is locally and monotonically incremented
@@ -49,7 +48,7 @@ type Server struct {
 
 	RedisConn *redis.Client
 
-	Log *list.List
+	Log []*common.TransferTxn
 
 	Ballot *common.Ballot
 }
@@ -59,7 +58,7 @@ type Server struct {
 func InitServer(id int) *Server {
 	server := &Server{
 		Id:         id,
-		Blockchain: list.New(),
+		Blockchain: make([]*common.Block, 0),
 		Port:       common.ServerPortMap[id],
 		// we always start off with seq num = 0
 		SeqNum:           0,
@@ -68,7 +67,7 @@ func InitServer(id int) *Server {
 		ServerConn:       make(map[int]net.Conn),
 		Peers:            make([]int, 0),
 		AssociatedClient: id,
-		Log:              list.New(),
+		Log:              make([]*common.TransferTxn, 0),
 		Ballot: &common.Ballot{
 			BallotNum: 0,
 			ProcessId: id,
@@ -240,12 +239,19 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 		log.WithFields(log.Fields{
 			"request":      request,
 			"request_type": request.Type,
+			"fromId":       request.FromId,
 		}).Debug("Request received")
 		switch request.Type {
 		case common.COMMIT_MESSAGE:
 			server.updateBlockchain(request.BlockMessage)
 		case common.ELECTION_ACCEPTED_MESSAGE:
-			peerLocalLogs = append(peerLocalLogs, request.AcceptedMessage)
+			// since we are broadcasting the accept messages, we will receive the accepted messages
+			// 4 times(twice from each peer). Maintain the IDs of the peers which have
+			// already sent the accepted messages
+			if _, OK := recvdAcceptMsgMap[request.FromId]; !OK {
+				peerLocalLogs = append(peerLocalLogs, request.AcceptedMessage)
+				recvdAcceptMsgMap[request.FromId] = true
+			}
 			if server.validateBallotNumber(request.AcceptedMessage.Ballot.BallotNum) {
 				if !timerStarted {
 					log.Info("starting timer(waiting for all ACCEPTED messages)")
@@ -253,8 +259,8 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 					// this is required, since the Accept messages from the other peer servers come
 					// in quite fast, and during this interval, the timerStarted variable is not
 					// set to True. Due to this race condition, the timer is started once again.
-					// Sleep for 3 seconds to avoid such a condition.
-					time.Sleep(3 * time.Second)
+					// Sleep for 4 seconds to avoid such a condition.
+					time.Sleep(4 * time.Second)
 					go func() {
 						for {
 							if acceptedMsgTimeout {
@@ -262,6 +268,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 								server.processPeerLocalLogs(peerLocalLogs)
 								peerLocalLogs = nil
 								peerLocalLogs = make([]*common.AcceptedMessage, 0)
+								recvdAcceptMsgMap = make(map[int]bool)
 								break
 							}
 						}
@@ -288,8 +295,8 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				seqNumbersRecvd = make([]*common.ReconcileSeqMessage, 0)
 				numReconcileSeqMessages = 0
 			}
-		case common.RECONCILE_REQ_MESSAGE:
-			server.handleReconcileRequestMessage(conn)
+		//case common.RECONCILE_REQ_MESSAGE:
+		//	server.handleReconcileRequestMessage(conn)
 		//----------------------- MESSAGES RECEIVED FROM CLIENT -----------------------
 		case common.TRANSACTION_MESSAGE:
 			server.processTxnRequest(server.getClientConnection(), request.TxnMessage)
@@ -362,5 +369,5 @@ func Start(id int) {
 
 	BlockChainServer.createTopology()
 
-	BlockChainServer.checkAndReconcile()
+	//BlockChainServer.checkAndReconcile()
 }
