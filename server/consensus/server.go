@@ -189,9 +189,6 @@ func (server *Server) createTopology() {
 func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.TransferTxn) {
 	// check the current balance
 	possible := server.checkIfTxnPossible(transferRequest)
-	log.WithFields(log.Fields{
-		"possible": possible,
-	}).Info("possibility of txn")
 	if possible {
 		server.execLocalTxn(transferRequest)
 		resp := &common.Response{

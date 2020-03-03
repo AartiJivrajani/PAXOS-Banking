@@ -45,7 +45,6 @@ func (server *Server) getLocalBalance() int {
 // block chain. If this balance is greater than the amount to be transacted, a PAXOS run
 // is not required, else, it is
 func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
-	log.Info("checking if transaction is possible")
 	blockchainPrint := utils.GetBlockchainPrint(server.Blockchain)
 	balance := server.getLocalBalance()
 	log.WithFields(log.Fields{
@@ -53,12 +52,9 @@ func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
 		"blockchain":      blockchainPrint,
 		"newTxn":          txn.Amount,
 		"balance":         balance,
-	}).Info("checking possibility.....")
-	if balance < 0 {
-		return false
-	}
+	}).Info("checking transaction possibility.....")
 	if balance < txn.Amount {
-		log.Error("transaction not possible!")
+		log.Error("transaction not possible")
 		return false
 	} else {
 		return true
