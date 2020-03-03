@@ -250,6 +250,10 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				if !timerStarted {
 					log.Info("starting timer(waiting for all ACCEPTED messages)")
 					go server.waitForAcceptedMessages()
+					// this is required, since the Accept messages from the other peer servers come
+					// in quite fast, and during this interval, the timerStarted variable is not
+					// set to True. Due to this race condition, the timer is started once again.
+					// Sleep for 3 seconds to avoid such a condition.
 					time.Sleep(3 * time.Second)
 					go func() {
 						for {

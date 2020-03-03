@@ -58,6 +58,12 @@ TODO:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - If the local amount is insufficient to process the transaction, start a PAXOS run.   
 
 #### REDIS DATA MODEL
-Key: SERVER-BLOCKCHAIN-<id> Value: the committed blockchain
-Key: SERVER-LOG-<id> Value: uncommitted log
+Key: SERVER-BLOCKCHAIN-{id} Value: the committed blockchain  
+Key: SERVER-LOG-{id} Value: uncommitted log
 
+#### Order of transactions
+Leader -> Others [PREPARE BROADCAST]  
+Others -> Leader [PROMISE]  
+Leader -> Others [ACCEPT BROADCAST]  
+Others -> Leader [ACCEPTED]  
+Leader -> Others [COMMIT, Along with the local transaction logs]  
