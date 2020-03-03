@@ -14,10 +14,10 @@ func (server *Server) getBalance() int {
 	balance := 100
 	for _, block := range server.Blockchain {
 		for _, txn := range block.Transactions {
-			if txn.Recvr == server.AssociatedClient {
+			if txn.Recvr == server.Id {
 				balance += txn.Amount
 			}
-			if txn.Sender == server.AssociatedClient {
+			if txn.Sender == server.Id {
 				balance -= txn.Amount
 			}
 		}
@@ -31,10 +31,10 @@ func (server *Server) getBalance() int {
 func (server *Server) getLocalBalance() int {
 	balance := server.getBalance()
 	for _, txn := range server.Log {
-		if txn.Recvr == server.AssociatedClient {
+		if txn.Recvr == server.Id {
 			balance += txn.Amount
 		}
-		if txn.Sender == server.AssociatedClient {
+		if txn.Sender == server.Id {
 			balance -= txn.Amount
 		}
 	}
@@ -51,13 +51,14 @@ func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
 	log.WithFields(log.Fields{
 		"currentLocalLog": utils.GetLocalLogPrint(server.Log),
 		"blockchain":      blockchainPrint,
-		"newTxn":          txn,
+		"newTxn":          txn.Amount,
 		"balance":         balance,
-	}).Info("checking possibility......")
+	}).Info("checking possibility.....")
 	if balance < 0 {
 		return false
 	}
-	if balance > txn.Amount {
+	if balance < txn.Amount {
+		log.Error("transaction not possible!")
 		return false
 	} else {
 		return true

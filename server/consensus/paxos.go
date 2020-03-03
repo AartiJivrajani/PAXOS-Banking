@@ -3,7 +3,6 @@ package consensus
 import (
 	"PAXOS-Banking/common"
 	"PAXOS-Banking/utils"
-	"container/list"
 	"encoding/json"
 	"net"
 	"time"
@@ -135,8 +134,10 @@ func (server *Server) sendResponseToClientAfterPaxos() {
 		jResp          []byte
 	)
 	// evict the local transactions now, since they are already in a block.
+	server.Log = nil
 	server.Log = make([]*common.TransferTxn, 0)
-	if server.checkIfTxnPossible(clientTxn) {
+	possible := server.checkIfTxnPossible(clientTxn)
+	if possible {
 		server.execLocalTxn(clientTxn)
 		clientResponse = &common.Response{
 			MessageType: common.SERVER_TXN_COMPLETE,
@@ -204,14 +205,6 @@ func (server *Server) sendAllLocalLogs(msg *common.Message) {
 }
 
 func (server *Server) updateBlockchain(msg *common.BlockMessage) {
-	l := list.New()
-	log.WithFields(log.Fields{
-		"block": msg.Txns,
-	}).Info("received block in commit message")
-	for _, txn := range msg.Txns {
-		log.Info(txn.Amount)
-		l.PushBack(txn)
-	}
 	block := &common.Block{
 		SeqNum:       msg.SeqNum,
 		Transactions: msg.Txns,
@@ -225,6 +218,7 @@ func (server *Server) updateBlockchain(msg *common.BlockMessage) {
 // execPaxosRun initiates a PAXOS run and then adds the transaction to the local block chain
 func (server *Server) execPaxosRun(txn *common.TransferTxn) {
 	// 1. perform leader election
+	log.Info("PAXOS RUN START")
 	clientTxn = txn
 	server.getElected()
 }

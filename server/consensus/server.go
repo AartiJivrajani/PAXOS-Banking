@@ -188,8 +188,11 @@ func (server *Server) createTopology() {
 // the transaction is carried out locally.
 func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.TransferTxn) {
 	// check the current balance
-	runPaxos := server.checkIfTxnPossible(transferRequest)
-	if !runPaxos {
+	possible := server.checkIfTxnPossible(transferRequest)
+	log.WithFields(log.Fields{
+		"possible": possible,
+	}).Info("possibility of txn")
+	if possible {
 		server.execLocalTxn(transferRequest)
 		resp := &common.Response{
 			MessageType: common.SERVER_TXN_COMPLETE,
@@ -259,8 +262,8 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 					// this is required, since the Accept messages from the other peer servers come
 					// in quite fast, and during this interval, the timerStarted variable is not
 					// set to True. Due to this race condition, the timer is started once again.
-					// Sleep for 4 seconds to avoid such a condition.
-					time.Sleep(4 * time.Second)
+					// Sleep for 5 seconds to avoid such a condition.
+					time.Sleep(5 * time.Second)
 					go func() {
 						for {
 							if acceptedMsgTimeout {
@@ -268,6 +271,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 								server.processPeerLocalLogs(peerLocalLogs)
 								peerLocalLogs = nil
 								peerLocalLogs = make([]*common.AcceptedMessage, 0)
+								recvdAcceptMsgMap = nil
 								recvdAcceptMsgMap = make(map[int]bool)
 								break
 							}

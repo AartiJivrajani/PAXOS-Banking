@@ -31,9 +31,7 @@ func ConfigureLogger(level string) {
 func GetBlockchainPrint(blockchain []*common.Block) string {
 	var l string
 	for i, block := range blockchain {
-		if i == 0 {
-			l += "["
-		}
+		l += "["
 		for j, txn := range block.Transactions {
 			l = l + "(" + strconv.Itoa(txn.Sender) + ":" + strconv.Itoa(txn.Recvr) + ":" +
 				strconv.Itoa(txn.Amount) + ")"
@@ -41,11 +39,11 @@ func GetBlockchainPrint(blockchain []*common.Block) string {
 				l = l + "->"
 			}
 		}
+		l += "]"
 		if i < len(blockchain)-1 {
 			l = l + "->"
 		}
 	}
-	l += "]"
 	return l
 }
 
