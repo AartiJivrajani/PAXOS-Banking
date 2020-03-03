@@ -45,11 +45,6 @@ type ElectionMessage struct {
 	Ballot *Ballot `json:"ballot"`
 }
 
-type BlockMessage struct {
-	SeqNum int            `json:"seq_num"`
-	Txns   []*TransferTxn `json:"txns"`
-}
-
 type Message struct {
 	FromId              int                  `json:"from_id"`
 	Type                string               `json:"message_type"`
@@ -57,7 +52,7 @@ type Message struct {
 	ElectionMsg         *ElectionMessage     `json:"election_message,omitempty"`
 	ReconcileSeqMessage *ReconcileSeqMessage `json:"reconcile_sequence_numbers,omitempty"`
 	AcceptedMessage     *AcceptedMessage     `json:"accepted_message,omitempty"`
-	BlockMessage        *BlockMessage        `json:"block_message,omitempty"`
+	BlockMessage        *Block               `json:"block_message,omitempty"`
 }
 
 type Block struct {
@@ -71,14 +66,4 @@ type Response struct {
 	Balance     int    `json:"balance,omitempty"`
 	ClientId    int    `json:"client_id"`
 	ToBePrinted string `json:"to_be_printed,omitempty"`
-}
-
-// structures required to convert a list to array and vice-versa
-type BlockArr struct {
-	SeqNum       int     `json:"seq_num"`
-	Transactions [][]int `json:"transactions"`
-}
-
-type BlockArrChain struct {
-	Chain []*BlockArr
 }
