@@ -47,6 +47,16 @@ func (client *Client) StartTransactions() {
 				Type: transactionType,
 			}
 			client.SendRequestToServer(message)
+		case common.SHOW_LOG_MESSAGE:
+			message := &common.Message{
+				Type: transactionType,
+			}
+			client.SendRequestToServer(message)
+		case common.SHOW_BLOCKCHAIN_MESSAGE:
+			message := &common.Message{
+				Type: transactionType,
+			}
+			client.SendRequestToServer(message)
 		case common.TRANSACTION_MESSAGE:
 			prompt := promptui.Prompt{
 				Label: "Receiver Client",

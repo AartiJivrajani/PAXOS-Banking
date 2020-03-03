@@ -46,6 +46,9 @@ func (client *Client) handleIncomingConnections(conn net.Conn) {
 		}
 		switch resp.MessageType {
 		case common.SERVER_TXN_COMPLETE:
+			log.WithFields(log.Fields{
+				"msg": resp.MessageType,
+			}).Info("message received from the server")
 			showNextPrompt <- true
 		case common.SHOW_LOG_MESSAGE:
 			utils.PrettyPrint(resp.ToBePrinted)
@@ -113,7 +116,6 @@ func (client *Client) SendRequestToServer(request *common.Message) {
 	// the type of request and process it further
 	PORT := ":" + strconv.Itoa(common.ServerPortMap[client.Id])
 	conn, err := net.Dial("tcp", PORT)
-	//go client.startConnectionRead(conn)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":    err.Error(),
