@@ -40,7 +40,7 @@ func GetLocalLogPrint(log *list.List) string {
 	var l string
 	for block := log.Front(); block != nil; block = block.Next() {
 		l = l + strconv.Itoa(block.Value.(*common.TransferTxn).Sender) + ":" + strconv.Itoa(block.Value.(*common.TransferTxn).Recvr) +
-			":" + fmt.Sprintf("%g", block.Value.(*common.TransferTxn).Amount)
+			":" + fmt.Sprintf("%d", block.Value.(*common.TransferTxn).Amount)
 		if block.Next() != nil {
 			l = l + "->"
 		}
@@ -57,19 +57,14 @@ func PrettyPrint(str string) {
 }
 
 // ListToArrays creates an array of arrays for all the blockchain transactions.
-// Something like this - [[sender, recrv, amount], [sender, recvr, amount]]
-func ListToArrays(l *list.List) [][]int {
-	finalList := make([][]int, 0)
+func ListToArrays(l *list.List) []*common.TransferTxn {
+	finalList := make([]*common.TransferTxn, 0)
 	for block := l.Front(); block != nil; block = block.Next() {
 		txns := block.Value.(*list.List)
-		innerList := make([]int, 0)
 		for txn := txns.Front(); txn != nil; txn = txn.Next() {
-			innerList = append(innerList,
-				txn.Value.(*common.TransferTxn).Sender,
-				txn.Value.(*common.TransferTxn).Recvr,
-				txn.Value.(*common.TransferTxn).Amount)
+			finalList = append(finalList, txn.Value.(*common.TransferTxn))
 		}
-		finalList = append(finalList, innerList)
+
 	}
 	return finalList
 }
@@ -95,4 +90,12 @@ func GetBlockChainFromArr(chain *common.BlockArrChain) *list.List {
 		finalList.PushBack(blockChainBlock)
 	}
 	return finalList
+}
+
+func LogToArray(l *list.List) []*common.TransferTxn {
+	finalArr := make([]*common.TransferTxn, 0)
+	for block := l.Front(); block != nil; block = block.Next() {
+		finalArr = append(finalArr, block.Value.(*common.TransferTxn))
+	}
+	return finalArr
 }

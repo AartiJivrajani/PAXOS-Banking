@@ -2,7 +2,9 @@ package consensus
 
 import (
 	"PAXOS-Banking/common"
+	"PAXOS-Banking/utils"
 	"container/list"
+	"fmt"
 )
 
 // getBalance gets the balance from the transactions in the block chain
@@ -55,10 +57,9 @@ func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
 
 // execLocalTxn carries out the transaction locally and saves the record in the local blockchain
 func (server *Server) execLocalTxn(txn *common.TransferTxn) {
+	server.Log.PushBack(txn)
 
-}
-
-// execPaxosRun initiates a PAXOS run and then adds the transaction to the local blockchain
-func (server *Server) execPaxosRun(txn *common.TransferTxn) {
-	server.getElected()
+	// update the local log in redis as well
+	arr := utils.LogToArray(server.Log)
+	server.RedisConn.Set(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id), arr, 0)
 }
