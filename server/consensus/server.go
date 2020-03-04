@@ -182,6 +182,24 @@ func (server *Server) createTopology() {
 	}
 }
 
+//func (server *Server) WriteToServer(conn net.Conn, body []byte) {
+//	var (
+//		err  error
+//		d    time.Duration
+//		b    = &backoff.Backoff{
+//			Min:    10 * time.Second,
+//			Max:    1 * time.Minute,
+//			Factor: 2,
+//			Jitter: false,
+//		}
+//	)
+//
+//		_, err = conn.Write(body)
+//		if err == nil {
+//			return
+//		}
+//
+//}
 // processTxnRequest first checks the client balance in the local blockchain. If the amount to be
 // transferred is greater than the local balance, a PAXOS run is made, in order to
 // fetch the transactions from all the other replicas. Else, a block is added to the blockchain and
@@ -195,6 +213,7 @@ func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.T
 			MessageType: common.SERVER_TXN_COMPLETE,
 		}
 		jResp, _ := json.Marshal(resp)
+		//server.WriteToServer(conn, jResp)
 		_, _ = conn.Write(jResp)
 	} else {
 		server.execPaxosRun(transferRequest)
@@ -295,8 +314,8 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				seqNumbersRecvd = make([]*common.ReconcileSeqMessage, 0)
 				numReconcileSeqMessages = 0
 			}
-		//case common.RECONCILE_REQ_MESSAGE:
-		//	server.handleReconcileRequestMessage(conn)
+		case common.RECONCILE_REQ_MESSAGE:
+			server.handleReconcileRequestMessage(conn)
 		//----------------------- MESSAGES RECEIVED FROM CLIENT -----------------------
 		case common.TRANSACTION_MESSAGE:
 			server.processTxnRequest(server.getClientConnection(), request.TxnMessage)
