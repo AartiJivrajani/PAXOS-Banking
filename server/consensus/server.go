@@ -4,6 +4,7 @@ import (
 	"PAXOS-Banking/common"
 	"PAXOS-Banking/utils"
 	"encoding/json"
+	"fmt"
 	"net"
 	"strconv"
 	"sync"
@@ -402,6 +403,13 @@ func (server *Server) startListener() {
 		}
 		go server.handleIncomingConnections(c)
 	}
+}
+
+// ClearRedisData is called every time a server is shut down, so that we don't have to manually
+// remove the entries from redis before the next run
+func ClearRedisData() {
+	BlockChainServer.RedisConn.Del(fmt.Sprintf(common.REDIS_LOG_KEY, BlockChainServer.Id))
+	BlockChainServer.RedisConn.Del(fmt.Sprintf(common.REDIS_BLOCKCHAIN_KEY, BlockChainServer.Id))
 }
 
 func Start(id int) {

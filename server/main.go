@@ -33,6 +33,7 @@ func main() {
 	go func() {
 		for _ = range signalChan {
 			log.Info("Received an interrupt, stopping all connections...")
+			consensus.ClearRedisData()
 			cancel()
 			cleanupDone <- true
 		}

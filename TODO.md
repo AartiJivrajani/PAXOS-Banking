@@ -1,5 +1,6 @@
 [X]  Fix client connections (establish the right connection from the server)  
-[ ]  Test PAXOS  
+[X]  Test PAXOS  
 [ ]  Node failure handling  
-[ ]  On server stop, clear redis data  
-[ ]  !!! When do we evict the local log?
+[X]  On server stop, clear redis data  
+[X]  !!! When do we evict the local log?  
+[X]  Reconnection when a server goes down  
