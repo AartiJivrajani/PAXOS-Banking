@@ -5,8 +5,9 @@ import (
 	"PAXOS-Banking/utils"
 	"encoding/json"
 	"fmt"
-	"net"
 	"time"
+
+	"github.com/jpillora/backoff"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -17,18 +18,6 @@ var (
 	timerStarted       = false
 	clientTxn          *common.TransferTxn
 )
-
-// SendPrepare sends the prepare messages to all the other clients of the ecosystem
-// This is invoked once a client tries to initiate a transaction by sending it to the server
-func (server *Server) SendPrepare() {
-
-}
-
-// waitForAccepts essentially waits for accept responses from a majority of servers in the
-// application ecosystem
-func (server *Server) waitForAccepts() {
-
-}
 
 // getElected starts the election process in order for the server to get elected.
 func (server *Server) getElected() {
@@ -46,16 +35,38 @@ func (server *Server) getElected() {
 	server.broadcastMessages(jMsg, common.ELECTION_PREPARE_MESSAGE)
 }
 
+func (server *Server) writeToServer(toServer int, msg []byte, messageType string) {
+	var (
+		err error
+		d   time.Duration
+		b   = &backoff.Backoff{
+			Min:    10 * time.Second,
+			Max:    1 * time.Minute,
+			Factor: 2,
+			Jitter: false,
+		}
+	)
+	d = b.Duration()
+	for {
+		_, err = server.ServerConn[toServer].Write(msg)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error":       err.Error(),
+				"toServer":    toServer,
+				"messageType": messageType,
+			}).Error("error writing message to server")
+			time.Sleep(d)
+			server.reconnectToServer(toServer)
+		}
+	}
+}
+
 func (server *Server) broadcastMessages(msg []byte, msgType string) {
 	log.WithFields(log.Fields{
 		"messageType": msgType,
 	}).Info("Broadcasting message")
 	for _, peer := range server.Peers {
-		// assume for now that the connections exist
-		_, err := server.ServerConn[peer].Write(msg)
-		if err != nil {
-			// TODO: probably cause our connection died. Redo the topology maybe?
-		}
+		server.writeToServer(peer, msg, msgType)
 	}
 }
 
@@ -161,7 +172,7 @@ func (server *Server) sendResponseToClientAfterPaxos() {
 
 // processPrepareMessage allows the server to decide if it should
 // elect a new leader and join its ballot.
-func (server *Server) processPrepareMessage(conn net.Conn, msg *common.Message) {
+func (server *Server) processPrepareMessage(msg *common.Message) {
 	if msg.ElectionMsg.Ballot.BallotNum >= server.Ballot.BallotNum {
 		log.WithFields(log.Fields{
 			"current Ballot Number": server.Ballot.BallotNum,
@@ -179,12 +190,7 @@ func (server *Server) processPrepareMessage(conn net.Conn, msg *common.Message) 
 			},
 		}
 		jAckMsg, _ := json.Marshal(ackMsg)
-		_, err := server.ServerConn[msg.FromId].Write(jAckMsg)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("error writing the ACK message back to the server(who wants to be a leader)")
-		}
+		server.writeToServer(msg.FromId, jAckMsg, common.ELECTION_PROMISE_MESSAGE)
 	} else {
 		log.WithFields(log.Fields{
 			"current Ballot Number": server.Ballot.BallotNum,
@@ -207,7 +213,7 @@ func (server *Server) sendAllLocalLogs(msg *common.Message) {
 		AcceptedMessage: accMsg,
 	}
 	jMsg, _ := json.Marshal(commonMessage)
-	_, _ = server.ServerConn[msg.FromId].Write(jMsg)
+	server.writeToServer(msg.FromId, jMsg, common.ELECTION_ACCEPT_MESSAGE)
 }
 
 func (server *Server) updateBlockchain(msg *common.Block) {

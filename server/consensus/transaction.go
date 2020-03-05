@@ -3,6 +3,7 @@ package consensus
 import (
 	"PAXOS-Banking/common"
 	"PAXOS-Banking/utils"
+	"encoding/json"
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
@@ -64,7 +65,6 @@ func (server *Server) checkIfTxnPossible(txn *common.TransferTxn) bool {
 // execLocalTxn carries out the transaction locally and saves the record in the local blockchain
 func (server *Server) execLocalTxn(txn *common.TransferTxn) {
 	server.Log = append(server.Log, txn)
-
-	// TODO: update the local log in redis as well
-	server.RedisConn.Set(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id), server.Log, 0)
+	localLog, _ := json.Marshal(server.Log)
+	server.RedisConn.Set(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id), localLog, 0)
 }

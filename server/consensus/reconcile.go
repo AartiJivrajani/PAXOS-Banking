@@ -32,26 +32,15 @@ func (server *Server) handleReconcileRequestMessage(conn net.Conn) {
 func (server *Server) sendReconcileRequest() {
 	var (
 		request *common.Message
-		err     error
 	)
 	for _, peer := range server.Peers {
-		if server.ServerConn[peer] != nil {
-			request = &common.Message{
-				FromId: server.Id,
-				Type:   common.RECONCILE_REQ_MESSAGE,
-			}
-			jReq, _ := json.Marshal(request)
-			_, err = server.ServerConn[peer].Write(jReq)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"error": err.Error(),
-					"peer":  peer,
-				}).Info("error writing reconcile request message to the peer")
-			}
-		} else {
-			//TODO: Take care of the case when the connections are down and new connections need to be
-			// established before continuing
+		request = &common.Message{
+			FromId: server.Id,
+			Type:   common.RECONCILE_REQ_MESSAGE,
 		}
+		jReq, _ := json.Marshal(request)
+		server.writeToServer(peer, jReq, common.RECONCILE_REQ_MESSAGE)
+
 	}
 }
 

@@ -89,6 +89,47 @@ func InitServer(id int) *Server {
 	return server
 }
 
+func (server *Server) reconnectToServer(toServer int) {
+	var (
+		conn net.Conn
+		err  error
+		d    time.Duration
+		b    = &backoff.Backoff{
+			Min:    10 * time.Second,
+			Max:    1 * time.Minute,
+			Factor: 2,
+			Jitter: false,
+		}
+	)
+	log.WithFields(log.Fields{
+		"fromServer": server.Id,
+		"toServer":   toServer,
+	}).Debug("re-establishing connection to server")
+	PORT := ":" + strconv.Itoa(common.ServerPortMap[toServer])
+	d = b.Duration()
+	for {
+		conn, err = net.Dial("tcp", PORT)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err.Error(),
+			}).Debug("error connecting to server")
+			if b.Attempt() <= common.MaxReconnectAttempts {
+				time.Sleep(d)
+				continue
+			} else {
+				log.Panic("error connecting to server, shutting down...")
+			}
+		} else {
+			log.WithFields(log.Fields{
+				"fromServer": server.Id,
+				"toServer":   toServer,
+			}).Debug("connection established with server")
+			break
+		}
+	}
+	server.ServerConn[toServer] = conn
+}
+
 func (server *Server) getClientConnection() net.Conn {
 	var (
 		conn net.Conn
@@ -182,24 +223,6 @@ func (server *Server) createTopology() {
 	}
 }
 
-//func (server *Server) WriteToServer(conn net.Conn, body []byte) {
-//	var (
-//		err  error
-//		d    time.Duration
-//		b    = &backoff.Backoff{
-//			Min:    10 * time.Second,
-//			Max:    1 * time.Minute,
-//			Factor: 2,
-//			Jitter: false,
-//		}
-//	)
-//
-//		_, err = conn.Write(body)
-//		if err == nil {
-//			return
-//		}
-//
-//}
 // processTxnRequest first checks the client balance in the local blockchain. If the amount to be
 // transferred is greater than the local balance, a PAXOS run is made, in order to
 // fetch the transactions from all the other replicas. Else, a block is added to the blockchain and
@@ -213,7 +236,6 @@ func (server *Server) processTxnRequest(conn net.Conn, transferRequest *common.T
 			MessageType: common.SERVER_TXN_COMPLETE,
 		}
 		jResp, _ := json.Marshal(resp)
-		//server.WriteToServer(conn, jResp)
 		_, _ = conn.Write(jResp)
 	} else {
 		server.execPaxosRun(transferRequest)
@@ -295,7 +317,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				}
 			}
 		case common.ELECTION_PREPARE_MESSAGE:
-			server.processPrepareMessage(conn, request)
+			server.processPrepareMessage(request)
 		case common.ELECTION_ACCEPT_MESSAGE:
 			server.sendAllLocalLogs(request)
 		case common.ELECTION_PROMISE_MESSAGE:
