@@ -133,6 +133,10 @@ func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
 		"id":        server.Id,
 	}).Info("current local state of the server, after paxos")
 
+	// evict the local transactions of the leader now, since they are already in a block.
+	server.Log = nil
+	server.Log = make([]*common.TransferTxn, 0)
+
 	msg := common.Message{
 		FromId:       server.Id,
 		Type:         common.COMMIT_MESSAGE,
@@ -153,9 +157,6 @@ func (server *Server) sendResponseToClientAfterPaxos() {
 		clientResponse *common.Response
 		jResp          []byte
 	)
-	// evict the local transactions now, since they are already in a block.
-	server.Log = nil
-	server.Log = make([]*common.TransferTxn, 0)
 	possible := server.checkIfTxnPossible(clientTxn)
 	log.Info("checking in sendResponseToClientAfterPaxos")
 	if possible {
@@ -245,6 +246,10 @@ func (server *Server) updateBlockchain(msg *common.Block) {
 	log.WithFields(log.Fields{
 		"chain": utils.GetBlockchainPrint(server.Blockchain),
 	}).Info("blockchain after update")
+	// evict the local transactions now, since they were already sent to the leader and the leader
+	// has sent back a block
+	server.Log = nil
+	server.Log = make([]*common.TransferTxn, 0)
 }
 
 // execPaxosRun initiates a PAXOS run and then adds the transaction to the local block chain
