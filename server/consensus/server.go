@@ -265,6 +265,7 @@ func (server *Server) processBalanceRequest(conn net.Conn) {
 // handleIncomingConnections simply decodes the incoming requests
 // and forwards them to the right handlers
 func (server *Server) handleIncomingConnections(conn net.Conn) {
+	log.Info("handling incoming connections......")
 	var (
 		request                 *common.Message
 		err                     error
@@ -349,15 +350,16 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			server.writeResponse(server.getClientConnection(), &common.Response{
 				MessageType: common.SHOW_LOG_MESSAGE,
 				Balance:     0,
-				ClientId:    0,
+				// Check if the clientId here needs to be 0 or not (was 0)
+				ClientId:    server.Id,
 				ToBePrinted: logStr,
 			})
 		case common.SHOW_BLOCKCHAIN_MESSAGE:
 			logStr = utils.GetBlockchainPrint(server.Blockchain)
 			server.writeResponse(server.getClientConnection(), &common.Response{
 				MessageType: common.SHOW_BLOCKCHAIN_MESSAGE,
-				Balance:     0,
-				ClientId:    0,
+				// Check if this needs the client Id to be 0 or not
+				ClientId:    server.Id,
 				ToBePrinted: logStr,
 			})
 		}
@@ -408,15 +410,15 @@ func (server *Server) startListener() {
 // ClearRedisData is called every time a server is shut down, so that we don't have to manually
 // remove the entries from redis before the next run
 func ClearRedisData() {
+	log.Info("Clearing local log from REDIS")
 	BlockChainServer.RedisConn.Del(fmt.Sprintf(common.REDIS_LOG_KEY, BlockChainServer.Id))
+	log.Info("Clearing blockchain from REDIS")
 	BlockChainServer.RedisConn.Del(fmt.Sprintf(common.REDIS_BLOCKCHAIN_KEY, BlockChainServer.Id))
 }
 
 func Start(id int) {
 	BlockChainServer = InitServer(id)
 	go BlockChainServer.startListener()
-
 	BlockChainServer.createTopology()
-
 	//BlockChainServer.checkAndReconcile()
 }

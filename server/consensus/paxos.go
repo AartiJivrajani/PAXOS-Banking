@@ -57,6 +57,8 @@ func (server *Server) writeToServer(toServer int, msg []byte, messageType string
 			}).Error("error writing message to server")
 			time.Sleep(d)
 			server.reconnectToServer(toServer)
+		} else {
+			break
 		}
 	}
 }

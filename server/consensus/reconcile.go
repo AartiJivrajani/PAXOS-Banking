@@ -40,7 +40,6 @@ func (server *Server) sendReconcileRequest() {
 		}
 		jReq, _ := json.Marshal(request)
 		server.writeToServer(peer, jReq, common.RECONCILE_REQ_MESSAGE)
-
 	}
 }
 
