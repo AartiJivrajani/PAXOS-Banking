@@ -65,10 +65,10 @@ func GetLocalLogPrint(log []*common.TransferTxn) string {
 	return l
 }
 
-func PrettyPrint(str string) {
+func PrettyPrint(str string, messageType string) {
 	log.Info(stars)
 	log.WithFields(log.Fields{
 		"message": str,
-	}).Info("local log")
+	}).Info(messageType)
 	log.Info(stars)
 }

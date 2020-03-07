@@ -53,12 +53,12 @@ func (client *Client) handleIncomingConnections(conn net.Conn) {
 			}).Info("message received from the server")
 			showNextPrompt <- true
 		case common.SHOW_LOG_MESSAGE:
-			utils.PrettyPrint(resp.ToBePrinted)
+			utils.PrettyPrint(resp.ToBePrinted, common.SHOW_LOG_MESSAGE)
 		case common.SHOW_BLOCKCHAIN_MESSAGE:
-			utils.PrettyPrint(resp.ToBePrinted)
+			utils.PrettyPrint(resp.ToBePrinted, common.SHOW_BLOCKCHAIN_MESSAGE)
 		case common.SHOW_BALANCE:
 			log.Info("received show balance resp from server")
-			utils.PrettyPrint(fmt.Sprintf("Balance: %d", resp.Balance))
+			utils.PrettyPrint(fmt.Sprintf("Balance: %d", resp.Balance), common.SHOW_BALANCE)
 		}
 	}
 }
