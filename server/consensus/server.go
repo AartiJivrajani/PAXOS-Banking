@@ -52,6 +52,15 @@ type Server struct {
 	Log []*common.TransferTxn
 
 	Ballot *common.Ballot
+
+	PaxosState int
+	// PaxosState represents the state this node is currently in during a paxos run.
+	// Valid states are
+	// 0 = follower
+	// 1 = sent/receive prepare message
+	// 2 = received/sent acks from majority, and elected as leader
+	// 3 = sent/received accept
+	// 4 = received/sent local logs from peers
 }
 
 // InitServer creates a new server instance and initializes all its parameters
@@ -73,6 +82,8 @@ func InitServer(id int) *Server {
 			BallotNum: 0,
 			ProcessId: id,
 		},
+		// all nodes are followers initially
+		PaxosState: 0,
 	}
 	server.RedisConn = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
@@ -298,7 +309,11 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				peerLocalLogs = append(peerLocalLogs, request.AcceptedMessage)
 				recvdAcceptMsgMap[request.FromId] = true
 			}
-			if server.validateBallotNumber(request.AcceptedMessage.Ballot.BallotNum) {
+			if server.validateBallotNumber(request.AcceptedMessage.Ballot.BallotNum) && server.PaxosState == 3 {
+				server.PaxosState = 4
+				log.WithFields(log.Fields{
+					"new paxos state": server.PaxosState,
+				}).Info("Changed to new paxos state")
 				if !timerStarted {
 					log.Info("starting timer(waiting for all ACCEPTED messages)")
 					go server.waitForAcceptedMessages()
@@ -323,12 +338,26 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				}
 			}
 		case common.ELECTION_PREPARE_MESSAGE:
+			server.PaxosState = 1
+			log.WithFields(log.Fields{
+				"new paxos state": server.PaxosState,
+			}).Info("Changed to new paxos state")
 			server.processPrepareMessage(request)
 		case common.ELECTION_ACCEPT_MESSAGE:
-			server.sendAllLocalLogs(request)
+			if server.PaxosState == 2 {
+				server.PaxosState = 3
+				log.WithFields(log.Fields{
+					"new paxos state": server.PaxosState,
+				}).Info("Changed to new paxos state")
+				server.sendAllLocalLogs(request)
+			}
 		case common.ELECTION_PROMISE_MESSAGE:
 			// Yay! You are a leader :D
-			if server.validateBallotNumber(request.ElectionMsg.Ballot.BallotNum) {
+			if server.validateBallotNumber(request.ElectionMsg.Ballot.BallotNum) && server.PaxosState == 1 {
+				server.PaxosState = 2
+				log.WithFields(log.Fields{
+					"new paxos state": server.PaxosState,
+				}).Info("Changed to new paxos state")
 				server.sendAcceptMessage()
 			}
 		case common.RECONCILE_SEQ_NUMBERS:
