@@ -31,9 +31,13 @@ func ConfigureLogger(level string) {
 func GetBlockchainPrint(blockchain []*common.Block) string {
 	var l string
 	for i, block := range blockchain {
-		l += "["
+		if len(block.Transactions) > 0 {
+			l = l + "[#" + strconv.Itoa(block.SeqNum)
+		} else {
+			continue
+		}
 		for j, txn := range block.Transactions {
-			l = l + "(" + strconv.Itoa(txn.Sender) + ":" + strconv.Itoa(txn.Recvr) + ":" +
+			l = l + "(" + strconv.Itoa(txn.Sender) + ":" + strconv.Itoa(txn.Recvr) + ":$" +
 				strconv.Itoa(txn.Amount) + ")"
 			if j < len(block.Transactions)-1 {
 				l = l + "->"
@@ -53,7 +57,7 @@ func GetLocalLogPrint(log []*common.TransferTxn) string {
 	var l string
 	for index, txn := range log {
 		l = l + "(" + strconv.Itoa(txn.Sender) + ":" + strconv.Itoa(txn.Recvr) +
-			":" + strconv.Itoa(txn.Amount) + ")"
+			":$" + strconv.Itoa(txn.Amount) + ")"
 		if index < len(log)-1 {
 			l = l + "->"
 		}

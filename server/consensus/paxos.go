@@ -96,19 +96,27 @@ func (server *Server) validateBallotNumber(reqBallotNum int) bool {
 func (server *Server) waitForAcceptedMessages() {
 	timer := time.NewTimer(10 * time.Second)
 	timerStarted = true
-	select {
-	case <-timer.C:
-		acceptedMsgTimeout = true
-		timerStarted = false
-	}
+	timerStartChan <- true
+	go func() {
+		for {
+			select {
+			case <-timer.C:
+				acceptedMsgTimeout = true
+				timerStarted = false
+				break
+			}
+		}
+	}()
 }
 
 func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
 	block := &common.Block{
-		SeqNum:       server.SeqNum + 1,
+		SeqNum:       server.SeqNum,
 		Transactions: make([]*common.TransferTxn, 0),
 	}
 
+	// before creating and adding a new block, increment the seq number
+	server.SeqNum += 1 // TODO: [Aarti] - Check this logic with Rakshith once
 	for _, localTxns := range logs {
 		for _, txn := range localTxns.Txns {
 			block.Transactions = append(block.Transactions, txn)
@@ -126,11 +134,9 @@ func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
 	}).Info("current local state of the server, after paxos")
 
 	msg := common.Message{
-		Type: common.COMMIT_MESSAGE,
-		BlockMessage: &common.Block{
-			SeqNum:       server.SeqNum + 1,
-			Transactions: block.Transactions,
-		},
+		FromId:       server.Id,
+		Type:         common.COMMIT_MESSAGE,
+		BlockMessage: block,
 	}
 	jMsg, _ := json.Marshal(msg)
 	server.broadcastMessages(jMsg, common.COMMIT_MESSAGE)
@@ -224,6 +230,10 @@ func (server *Server) updateBlockchain(msg *common.Block) {
 		SeqNum:       msg.SeqNum,
 		Transactions: msg.Transactions,
 	}
+	log.WithFields(log.Fields{
+		"existing blockchain": utils.GetBlockchainPrint(server.Blockchain),
+	}).Info("blockchain before update")
+
 	server.Blockchain = append(server.Blockchain, block)
 	jBlock, _ := json.Marshal(server.Blockchain)
 	_, err := server.RedisConn.Set(fmt.Sprintf(common.REDIS_BLOCKCHAIN_KEY, server.Id), jBlock, 0).Result()
@@ -234,7 +244,7 @@ func (server *Server) updateBlockchain(msg *common.Block) {
 	}
 	log.WithFields(log.Fields{
 		"chain": utils.GetBlockchainPrint(server.Blockchain),
-	}).Info("created block from new txns recvd")
+	}).Info("blockchain after update")
 }
 
 // execPaxosRun initiates a PAXOS run and then adds the transaction to the local block chain

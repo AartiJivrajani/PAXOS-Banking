@@ -23,6 +23,7 @@ var (
 	waitForReconcileResponse = make(chan []*common.ReconcileSeqMessage)
 	peerLocalLogs            = make([]*common.AcceptedMessage, 0)
 	recvdAcceptMsgMap        = make(map[int]bool)
+	timerStartChan           = make(chan bool)
 )
 
 type Server struct {
@@ -44,8 +45,6 @@ type Server struct {
 
 	// book-keep the other peers of this server
 	Peers []int
-	// each server serves a single client associated to it
-	AssociatedClient int
 
 	RedisConn *redis.Client
 
@@ -62,13 +61,12 @@ func InitServer(id int) *Server {
 		Blockchain: make([]*common.Block, 0),
 		Port:       common.ServerPortMap[id],
 		// we always start off with seq num = 0
-		SeqNum:           0,
-		Status:           common.FOLLOWER,
-		AlreadyPromised:  false,
-		ServerConn:       make(map[int]net.Conn),
-		Peers:            make([]int, 0),
-		AssociatedClient: id,
-		Log:              make([]*common.TransferTxn, 0),
+		SeqNum:          0,
+		Status:          common.FOLLOWER,
+		AlreadyPromised: false,
+		ServerConn:      make(map[int]net.Conn),
+		Peers:           make([]int, 0),
+		Log:             make([]*common.TransferTxn, 0),
 		Ballot: &common.Ballot{
 			BallotNum: 0,
 			ProcessId: id,
@@ -267,7 +265,6 @@ func (server *Server) processBalanceRequest(conn net.Conn) {
 func (server *Server) handleIncomingConnections(conn net.Conn) {
 	log.Info("handling incoming connections......")
 	var (
-		request                 *common.Message
 		err                     error
 		logStr                  string
 		numReconcileSeqMessages int
@@ -275,6 +272,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 	)
 	d := json.NewDecoder(conn)
 	for {
+		var request *common.Message
 		err = d.Decode(&request)
 		if err != nil {
 			continue
@@ -297,29 +295,30 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				}).Info("received ACCEPTED MESSAGE from...")
 				peerLocalLogs = append(peerLocalLogs, request.AcceptedMessage)
 				recvdAcceptMsgMap[request.FromId] = true
-			}
-			if server.validateBallotNumber(request.AcceptedMessage.Ballot.BallotNum) {
-				if !timerStarted {
-					log.Info("starting timer(waiting for all ACCEPTED messages)")
-					go server.waitForAcceptedMessages()
-					// this is required, since the Accept messages from the other peer servers come
-					// in quite fast, and during this interval, the timerStarted variable is not
-					// set to True. Due to this race condition, the timer is started once again.
-					// Sleep for 5 seconds to avoid such a condition.
-					time.Sleep(5 * time.Second)
-					go func() {
-						for {
-							if acceptedMsgTimeout {
-								log.Info("time out!")
-								server.processPeerLocalLogs(peerLocalLogs)
-								peerLocalLogs = nil
-								peerLocalLogs = make([]*common.AcceptedMessage, 0)
-								recvdAcceptMsgMap = nil
-								recvdAcceptMsgMap = make(map[int]bool)
-								break
+				if server.validateBallotNumber(request.AcceptedMessage.Ballot.BallotNum) {
+					if !timerStarted {
+						go server.waitForAcceptedMessages()
+						<-timerStartChan
+						log.Info("started timer(waiting for all ACCEPTED messages)")
+						// this is required, since the Accept messages from the other peer servers come
+						// in quite fast, and during this interval, the timerStarted variable is not
+						// set to True. Due to this race condition, the timer is started once again.
+						// Sleep for 5 seconds to avoid such a condition.
+						// time.Sleep(5 * time.Second)
+						go func() {
+							for {
+								if acceptedMsgTimeout {
+									log.Info("time out!")
+									server.processPeerLocalLogs(peerLocalLogs)
+									peerLocalLogs = nil
+									peerLocalLogs = make([]*common.AcceptedMessage, 0)
+									recvdAcceptMsgMap = nil
+									recvdAcceptMsgMap = make(map[int]bool)
+									break
+								}
 							}
-						}
-					}()
+						}()
+					}
 				}
 			}
 		case common.ELECTION_PREPARE_MESSAGE:
