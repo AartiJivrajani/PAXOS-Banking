@@ -294,6 +294,10 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 		}).Debug("Request received")
 		switch request.Type {
 		case common.COMMIT_MESSAGE:
+			server.PaxosState = 0
+			log.WithFields(log.Fields{
+				"new paxos state": server.PaxosState,
+			}).Info("Changed to new paxos state")
 			server.updateBlockchain(request.BlockMessage)
 		case common.ELECTION_ACCEPTED_MESSAGE:
 			// since we are broadcasting the accept messages, we will receive the accepted messages
