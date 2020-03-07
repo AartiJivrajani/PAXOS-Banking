@@ -113,7 +113,7 @@ func (server *Server) reconnectToServer(toServer int) {
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err.Error(),
-			}).Debug("error connecting to server")
+			}).Error("error connecting to server")
 			if b.Attempt() <= common.MaxReconnectAttempts {
 				time.Sleep(d)
 				continue
@@ -291,6 +291,10 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			// 4 times(twice from each peer). Maintain the IDs of the peers which have
 			// already sent the accepted messages
 			if _, OK := recvdAcceptMsgMap[request.FromId]; !OK {
+				log.WithFields(log.Fields{
+					"fromId":  request.FromId,
+					"message": request.AcceptedMessage,
+				}).Info("received ACCEPTED MESSAGE from...")
 				peerLocalLogs = append(peerLocalLogs, request.AcceptedMessage)
 				recvdAcceptMsgMap[request.FromId] = true
 			}

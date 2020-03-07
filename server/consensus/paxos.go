@@ -151,6 +151,7 @@ func (server *Server) sendResponseToClientAfterPaxos() {
 	server.Log = nil
 	server.Log = make([]*common.TransferTxn, 0)
 	possible := server.checkIfTxnPossible(clientTxn)
+	log.Info("checking in sendResponseToClientAfterPaxos")
 	if possible {
 		server.execLocalTxn(clientTxn)
 		clientResponse = &common.Response{

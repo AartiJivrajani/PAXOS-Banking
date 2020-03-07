@@ -39,9 +39,6 @@ func (client *Client) handleIncomingConnections(conn net.Conn) {
 	for {
 		err = d.Decode(&resp)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("error decoding the response message received from the server")
 			continue
 		}
 		switch resp.MessageType {
@@ -81,7 +78,6 @@ func (client *Client) StartResponseListener() {
 	for {
 		c, err := listener.Accept()
 		if err != nil {
-			// TODO: [Aarti] Have a back off and retry in this case. Cause lets say if some server went down
 			// and came back up again, we need this client listener to be alive again.
 			log.Error("error starting the server listener, shutting down...")
 			return
@@ -89,28 +85,6 @@ func (client *Client) StartResponseListener() {
 		go client.handleIncomingConnections(c)
 	}
 }
-
-//func (client *Client) startConnectionRead(conn net.Conn) {
-//	var (
-//		resp *common.Response
-//	)
-//	for {
-//		cmd, err := conn.Read(resp)
-//		if err == io.EOF {
-//			break
-//		} else if err != nil {
-//			log.Printf("Read error %v", err)
-//		}
-//		if cmd != nil {
-//			switch v := cmd.(type) {
-//			case protocol.MessageCommand:
-//				c.incoming <- v
-//			default:
-//				log.Printf("Unknown command: %v", v)
-//			}
-//		}
-//	}
-//}
 
 // SendRequestToServer sends the request to server over UDP and also
 // starts a timer. If the timer times out in `MAX_CLIENT_TIMEOUT`, sleep for `WAIT_SECONDS`
