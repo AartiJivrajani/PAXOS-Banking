@@ -24,6 +24,7 @@ var (
 	peerLocalLogs            = make([]*common.AcceptedMessage, 0)
 	recvdAcceptMsgMap        = make(map[int]bool)
 	timerStartChan           = make(chan bool)
+	pongRecvd                = make(chan bool)
 )
 
 type Server struct {
@@ -343,6 +344,10 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			}
 		case common.RECONCILE_REQ_MESSAGE:
 			server.handleReconcileRequestMessage(conn)
+		case common.HEARTBEAT_PING:
+			server.sendPongs(request)
+		case common.HEARTBEAT_PONG:
+			pongRecvd <- true
 		//----------------------- MESSAGES RECEIVED FROM CLIENT -----------------------
 		case common.TRANSACTION_MESSAGE:
 			server.processTxnRequest(server.getClientConnection(), request.TxnMessage)
@@ -419,9 +424,94 @@ func ClearRedisData() {
 	BlockChainServer.RedisConn.Del(fmt.Sprintf(common.REDIS_BLOCKCHAIN_KEY, BlockChainServer.Id))
 }
 
+func (server *Server) startSendingHeartbeats() {
+	for _, peer := range server.Peers {
+		go server.sendHeartBeats(peer)
+	}
+}
+
+func (server *Server) sendPongs(request *common.Message) {
+	msg := &common.Message{
+		FromId: server.Id,
+		Type:   common.HEARTBEAT_PONG,
+	}
+	jMsg, _ := json.Marshal(msg)
+	go server.writeToServer(request.FromId, jMsg, common.HEARTBEAT_PONG, true)
+}
+
+func (server *Server) handleDeadServer(destServerId int) {
+	// nil the connection of this peer
+	server.ServerConn[destServerId] = nil
+	newPeers := make([]int, 0)
+	for _, peer := range server.Peers {
+		if peer != destServerId {
+			newPeers = append(newPeers, peer)
+		} else {
+			log.WithFields(log.Fields{
+				"peerId": peer,
+			}).Info("peer serverId not added to the list")
+		}
+	}
+	if len(newPeers) == 0 {
+		log.WithFields(log.Fields{
+			"newPeers": newPeers,
+			"oldPeers": server.Peers,
+			"destPeer": destServerId,
+		}).Panic("unable to get a quorum, quitting now!")
+	}
+	server.Peers = newPeers
+}
+
+func (server *Server) waitForPongs(destServerId int) {
+	timer := time.NewTimer(12 * time.Second)
+	for {
+		select {
+		case <-timer.C:
+			log.WithFields(log.Fields{
+				"serverId": destServerId,
+			}).Error("did not receive a pong from server")
+
+			server.handleDeadServer(destServerId)
+			go server.reconnectToServer(destServerId)
+		case <-pongRecvd:
+			timer.Reset(12 * time.Second)
+			log.WithFields(log.Fields{
+				"serverId": destServerId,
+			}).Info("received pong, resetting pong timer")
+			return
+		}
+	}
+}
+
+func (server *Server) sendHeartBeats(destServerId int) {
+	ticker := time.NewTicker(8 * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			log.WithFields(log.Fields{
+				"fromServerId": server.Id,
+				"toServerId":   destServerId,
+			}).Info("sending ping to")
+			message := &common.Message{
+				FromId: server.Id,
+				Type:   common.HEARTBEAT_PING,
+			}
+			jMsg, _ := json.Marshal(message)
+			err := server.writeToServer(destServerId, jMsg, common.HEARTBEAT_PING, true)
+			if err != nil {
+				server.handleDeadServer(destServerId)
+			} else {
+				go server.waitForPongs(destServerId)
+			}
+		}
+	}
+}
+
 func Start(id int) {
 	BlockChainServer = InitServer(id)
 	go BlockChainServer.startListener()
 	BlockChainServer.createTopology()
-	//BlockChainServer.checkAndReconcile()
+	time.Sleep(10 * time.Second)
+	go BlockChainServer.startSendingHeartbeats()
+	BlockChainServer.checkAndReconcile()
 }

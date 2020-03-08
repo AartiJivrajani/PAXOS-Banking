@@ -4,3 +4,5 @@
 [X]  On server stop, clear redis data  
 [X]  !!! When do we evict the local log?  
 [X]  Reconnection when a server goes down  
+[ ] Take a lock on the peer list
+[X] Check for connection nil

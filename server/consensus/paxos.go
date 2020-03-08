@@ -35,7 +35,7 @@ func (server *Server) getElected() {
 	server.broadcastMessages(jMsg, common.ELECTION_PREPARE_MESSAGE)
 }
 
-func (server *Server) writeToServer(toServer int, msg []byte, messageType string) {
+func (server *Server) writeToServer(toServer int, msg []byte, messageType string, ping bool) error {
 	var (
 		err error
 		d   time.Duration
@@ -48,17 +48,31 @@ func (server *Server) writeToServer(toServer int, msg []byte, messageType string
 	)
 	d = b.Duration()
 	for {
+		if server.ServerConn[toServer] == nil {
+			log.WithFields(log.Fields{
+				"serverId":     server.Id,
+				"destServerId": toServer,
+			}).Error("connection nil, unable to write to server")
+			//server.reconnectToServer(toServer)
+			return fmt.Errorf("connection nil, unable to write to server")
+		}
 		_, err = server.ServerConn[toServer].Write(msg)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error":       err.Error(),
 				"toServer":    toServer,
 				"messageType": messageType,
+				"ping":        ping,
 			}).Error("error writing message to server")
-			time.Sleep(d)
-			server.reconnectToServer(toServer)
+			if !ping {
+				time.Sleep(d)
+				server.reconnectToServer(toServer)
+			} else {
+				go server.reconnectToServer(toServer)
+				return err
+			}
 		} else {
-			break
+			return nil
 		}
 	}
 }
@@ -68,7 +82,7 @@ func (server *Server) broadcastMessages(msg []byte, msgType string) {
 		"messageType": msgType,
 	}).Info("Broadcasting message")
 	for _, peer := range server.Peers {
-		server.writeToServer(peer, msg, msgType)
+		server.writeToServer(peer, msg, msgType, false)
 	}
 }
 
@@ -200,7 +214,7 @@ func (server *Server) processPrepareMessage(msg *common.Message) {
 			},
 		}
 		jAckMsg, _ := json.Marshal(ackMsg)
-		server.writeToServer(msg.FromId, jAckMsg, common.ELECTION_PROMISE_MESSAGE)
+		server.writeToServer(msg.FromId, jAckMsg, common.ELECTION_PROMISE_MESSAGE, false)
 	} else {
 		log.WithFields(log.Fields{
 			"current Ballot Number": server.Ballot.BallotNum,
@@ -223,7 +237,7 @@ func (server *Server) sendAllLocalLogs(msg *common.Message) {
 		AcceptedMessage: accMsg,
 	}
 	jMsg, _ := json.Marshal(commonMessage)
-	server.writeToServer(msg.FromId, jMsg, common.ELECTION_ACCEPT_MESSAGE)
+	server.writeToServer(msg.FromId, jMsg, common.ELECTION_ACCEPT_MESSAGE, false)
 }
 
 func (server *Server) updateBlockchain(msg *common.Block) {

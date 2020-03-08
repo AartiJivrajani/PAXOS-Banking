@@ -39,7 +39,7 @@ func (server *Server) sendReconcileRequest() {
 			Type:   common.RECONCILE_REQ_MESSAGE,
 		}
 		jReq, _ := json.Marshal(request)
-		server.writeToServer(peer, jReq, common.RECONCILE_REQ_MESSAGE)
+		server.writeToServer(peer, jReq, common.RECONCILE_REQ_MESSAGE, false)
 	}
 }
 

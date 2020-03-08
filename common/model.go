@@ -7,6 +7,9 @@ const (
 	ELECTION_ACCEPTED_MESSAGE string = "ACCEPTED"
 	COMMIT_MESSAGE            string = "COMMIT"
 
+	HEARTBEAT_PING string = "PING"
+	HEARTBEAT_PONG string = "PONG"
+
 	TRANSACTION_MESSAGE     string = "Transaction"
 	SHOW_LOG_MESSAGE        string = "Show Log"
 	SHOW_BLOCKCHAIN_MESSAGE string = "Show Blockchain"
