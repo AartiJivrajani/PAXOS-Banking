@@ -97,6 +97,10 @@ func (server *Server) sendAcceptMessage() {
 		},
 	}
 	jMsg, _ := json.Marshal(msg)
+	server.PaxosState = 3
+	log.WithFields(log.Fields{
+		"new paxos state": server.PaxosState,
+	}).Info("Changed to new paxos state")
 	server.broadcastMessages(jMsg, common.ELECTION_ACCEPT_MESSAGE)
 }
 
@@ -171,6 +175,10 @@ func (server *Server) sendResponseToClientAfterPaxos() {
 		clientResponse *common.Response
 		jResp          []byte
 	)
+	server.PaxosState = 0
+	log.WithFields(log.Fields{
+		"new paxos state": server.PaxosState,
+	}).Info("Changed to new paxos state")
 	possible := server.checkIfTxnPossible(clientTxn)
 	log.Info("checking in sendResponseToClientAfterPaxos")
 	if possible {
@@ -213,6 +221,10 @@ func (server *Server) processPrepareMessage(msg *common.Message) {
 				Ballot: msg.ElectionMsg.Ballot,
 			},
 		}
+		server.PaxosState = 2
+		log.WithFields(log.Fields{
+			"new paxos state": server.PaxosState,
+		}).Info("Changed to new paxos state")
 		jAckMsg, _ := json.Marshal(ackMsg)
 		server.writeToServer(msg.FromId, jAckMsg, common.ELECTION_PROMISE_MESSAGE, false)
 	} else {
@@ -237,6 +249,11 @@ func (server *Server) sendAllLocalLogs(msg *common.Message) {
 		AcceptedMessage: accMsg,
 	}
 	jMsg, _ := json.Marshal(commonMessage)
+  
+	server.PaxosState = 4
+	log.WithFields(log.Fields{
+		"new paxos state": server.PaxosState,
+	}).Info("Changed to new paxos state")
 	server.writeToServer(msg.FromId, jMsg, common.ELECTION_ACCEPT_MESSAGE, false)
 }
 
@@ -271,5 +288,9 @@ func (server *Server) execPaxosRun(txn *common.TransferTxn) {
 	// 1. perform leader election
 	log.Info("PAXOS RUN START")
 	clientTxn = txn
+	server.PaxosState = 1
+	log.WithFields(log.Fields{
+		"new paxos state": server.PaxosState,
+	}).Info("Changed to new paxos state")
 	server.getElected()
 }
