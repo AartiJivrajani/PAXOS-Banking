@@ -349,7 +349,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				}).Info("Changed to new paxos state")
 				server.sendAcceptMessage()
 			}
-		case common.RECONCILE_SEQ_NUMBERS:
+		case common.RECONCILE_SEQ_NUMBER:
 			numReconcileSeqMessages += 1
 			seqNumbersRecvd = append(seqNumbersRecvd, request.ReconcileSeqMessage)
 			// only once the server receives 2 requests, should we process them.
@@ -362,6 +362,10 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			}
 		case common.RECONCILE_REQ_MESSAGE:
 			server.handleReconcileRequestMessage(conn)
+		case common.RECONCILE_BLOCKCHAIN_REQUEST:
+			server.sendBlockchain(conn)
+		case common.RECONCILE_BLOCKCHAIN_RESPONSE:
+			server.receiveBlockchain(request.Blockchain)
 		//----------------------- MESSAGES RECEIVED FROM CLIENT -----------------------
 		case common.TRANSACTION_MESSAGE:
 			server.processTxnRequest(server.getClientConnection(), request.TxnMessage)

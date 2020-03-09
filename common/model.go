@@ -7,15 +7,17 @@ const (
 	ELECTION_ACCEPTED_MESSAGE string = "ACCEPTED"
 	COMMIT_MESSAGE            string = "COMMIT"
 
-	TRANSACTION_MESSAGE     string = "Transaction"
-	SHOW_LOG_MESSAGE        string = "Show Log"
-	SHOW_BLOCKCHAIN_MESSAGE string = "Show Blockchain"
-	SHOW_BALANCE            string = "Show Balance"
-	EXIT_MESSAGE            string = "Exit"
-	RECONCILE_REQ_MESSAGE   string = "Reconcile Request"
-	RECONCILE_SEQ_NUMBERS   string = "Reconcile Seq Numbers"
-	SERVER_TXN_COMPLETE     string = "Server Side Txn Complete"
-	INSUFFICIENT_FUNDS      string = "Insufficient Funds"
+	TRANSACTION_MESSAGE           string = "Transaction"
+	SHOW_LOG_MESSAGE              string = "Show Log"
+	SHOW_BLOCKCHAIN_MESSAGE       string = "Show Blockchain"
+	SHOW_BALANCE                  string = "Show Balance"
+	EXIT_MESSAGE                  string = "Exit"
+	RECONCILE_REQ_MESSAGE         string = "Reconcile Request"
+	RECONCILE_SEQ_NUMBER          string = "Reconcile Seq Number"
+	RECONCILE_BLOCKCHAIN_REQUEST  string = "Reconcile Blockchain Request"
+	RECONCILE_BLOCKCHAIN_RESPONSE string = "Reconcile Blockchain Response"
+	SERVER_TXN_COMPLETE           string = "Server Side Txn Complete"
+	INSUFFICIENT_FUNDS            string = "Insufficient Funds"
 )
 
 type TransferTxn struct {
@@ -31,8 +33,8 @@ type AcceptedMessage struct {
 }
 
 type ReconcileSeqMessage struct {
-	Id                  int   `json:"id"`
-	ReconcileSeqNumbers []int `json:"reconcile_seq_numbers"`
+	Id                 int `json:"id"`
+	ReconcileSeqNumber int `json:"reconcile_seq_number"`
 }
 
 type Ballot struct {
@@ -53,6 +55,7 @@ type Message struct {
 	ReconcileSeqMessage *ReconcileSeqMessage `json:"reconcile_sequence_numbers,omitempty"`
 	AcceptedMessage     *AcceptedMessage     `json:"accepted_message,omitempty"`
 	BlockMessage        *Block               `json:"block_message,omitempty"`
+	Blockchain          []*Block             `json:"blockchain,omitempty"`
 }
 
 type Block struct {
