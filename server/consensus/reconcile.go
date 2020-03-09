@@ -13,16 +13,13 @@ import (
 // handleReconcileRequestMessage returns a list of sequence numbers of the server's current block chain
 func (server *Server) handleReconcileRequestMessage(conn net.Conn) {
 	// send a list of all sequence numbers
-	seqNumbers := make([]int, 0)
-	for _, block := range server.Blockchain {
-		seqNumbers = append(seqNumbers, block.SeqNum)
-	}
+	seqNumber := server.SeqNum
 	resp := &common.Message{
 		FromId: server.Id,
-		Type:   common.RECONCILE_SEQ_NUMBERS,
+		Type:   common.RECONCILE_SEQ_NUMBER,
 		ReconcileSeqMessage: &common.ReconcileSeqMessage{
-			Id:                  server.Id,
-			ReconcileSeqNumbers: seqNumbers,
+			Id:                 server.Id,
+			ReconcileSeqNumber: seqNumber,
 		},
 	}
 	jResp, _ := json.Marshal(resp)
@@ -74,7 +71,41 @@ func (server *Server) reconcile(blockChainVal string, localLogVal string) {
 }
 
 func (server *Server) handleReconciliation(msg []*common.ReconcileSeqMessage) {
+	var (
+		maxSeqNum         int
+		maxSeqNumServerId int
+		request           *common.Message
+	)
+	for _, seqMsg := range msg {
+		if seqMsg.ReconcileSeqNumber > maxSeqNum {
+			maxSeqNum = seqMsg.ReconcileSeqNumber
+			maxSeqNumServerId = seqMsg.Id
+		}
+	}
+	request = &common.Message{
+		FromId: server.Id,
+		Type:   common.RECONCILE_BLOCKCHAIN_REQUEST,
+	}
+	jReq, _ := json.Marshal(request)
+	server.writeToServer(maxSeqNumServerId, jReq, common.RECONCILE_BLOCKCHAIN_REQUEST)
 
+}
+
+func (server *Server) sendBlockchain(conn net.Conn) {
+	// send my current blockchain
+	resp := &common.Message{
+		FromId:     server.Id,
+		Type:       common.RECONCILE_BLOCKCHAIN_RESPONSE,
+		Blockchain: server.Blockchain,
+	}
+
+	jMsg, _ := json.Marshal(resp)
+	_, _ = conn.Write(jMsg)
+
+}
+
+func (server *Server) receiveBlockchain(blkchain []*common.Block) {
+	server.Blockchain = blkchain
 }
 
 // checkAndReconcile first checks if the server is a zombie or a baby process
