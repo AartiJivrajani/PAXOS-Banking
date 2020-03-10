@@ -103,39 +103,25 @@ func (server *Server) reconnectToServer(toServer int) {
 	var (
 		conn net.Conn
 		err  error
-		d    time.Duration
-		b    = &backoff.Backoff{
-			Min:    10 * time.Second,
-			Max:    1 * time.Minute,
-			Factor: 2,
-			Jitter: false,
-		}
 	)
 	log.WithFields(log.Fields{
 		"fromServer": server.Id,
 		"toServer":   toServer,
 	}).Debug("re-establishing connection to server")
 	PORT := ":" + strconv.Itoa(common.ServerPortMap[toServer])
-	d = b.Duration()
-	for {
-		conn, err = net.Dial("tcp", PORT)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("error connecting to server")
-			if b.Attempt() <= common.MaxReconnectAttempts {
-				time.Sleep(d)
-				continue
-			} else {
-				log.Panic("error connecting to server, shutting down...")
-			}
-		} else {
-			log.WithFields(log.Fields{
-				"fromServer": server.Id,
-				"toServer":   toServer,
-			}).Debug("connection established with server")
-			break
-		}
+	conn, err = net.Dial("tcp", PORT)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":        err.Error(),
+			"fromServerId": server.Id,
+			"toServerId":   toServer,
+		}).Error("error re-connecting to server")
+		return
+	} else {
+		log.WithFields(log.Fields{
+			"fromServerId": server.Id,
+			"toServerId":   toServer,
+		}).Info("connection re-established with server")
 	}
 	server.ServerConn[toServer] = conn
 }
