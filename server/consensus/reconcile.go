@@ -4,14 +4,13 @@ import (
 	"PAXOS-Banking/common"
 	"encoding/json"
 	"fmt"
-	"net"
 
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/redis.v5"
 )
 
 // handleReconcileRequestMessage returns a list of sequence numbers of the server's current block chain
-func (server *Server) handleReconcileRequestMessage(conn net.Conn) {
+func (server *Server) handleReconcileRequestMessage(destServer int) {
 	// send a list of all sequence numbers
 	seqNumber := server.SeqNum
 	resp := &common.Message{
@@ -23,7 +22,7 @@ func (server *Server) handleReconcileRequestMessage(conn net.Conn) {
 		},
 	}
 	jResp, _ := json.Marshal(resp)
-	_, _ = conn.Write(jResp)
+	server.writeToServer(destServer, jResp, common.RECONCILE_SEQ_NUMBER)
 }
 
 func (server *Server) sendReconcileRequest() {
@@ -91,7 +90,7 @@ func (server *Server) handleReconciliation(msg []*common.ReconcileSeqMessage) {
 
 }
 
-func (server *Server) sendBlockchain(conn net.Conn) {
+func (server *Server) sendBlockchain(destServer int) {
 	// send my current blockchain
 	resp := &common.Message{
 		FromId:     server.Id,
@@ -100,8 +99,7 @@ func (server *Server) sendBlockchain(conn net.Conn) {
 	}
 
 	jMsg, _ := json.Marshal(resp)
-	_, _ = conn.Write(jMsg)
-
+	server.writeToServer(destServer, jMsg, common.RECONCILE_BLOCKCHAIN_RESPONSE)
 }
 
 func (server *Server) receiveBlockchain(blkchain []*common.Block) {
