@@ -375,9 +375,10 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				numReconcileSeqMessages = 0
 			}
 		case common.RECONCILE_REQ_MESSAGE:
-			server.handleReconcileRequestMessage(conn)
+			server.handleReconcileRequestMessage(request.FromId)
+			server.reconnectToServer(request.FromId)
 		case common.RECONCILE_BLOCKCHAIN_REQUEST:
-			server.sendBlockchain(conn)
+			server.sendBlockchain(request.FromId)
 		case common.RECONCILE_BLOCKCHAIN_RESPONSE:
 			server.receiveBlockchain(request.Blockchain)
 		//----------------------- MESSAGES RECEIVED FROM CLIENT -----------------------
