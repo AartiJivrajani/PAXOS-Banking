@@ -23,7 +23,6 @@ var (
 	waitForReconcileResponse = make(chan []*common.ReconcileSeqMessage)
 	peerLocalLogs            = make([]*common.AcceptedMessage, 0)
 	recvdAcceptMsgMap        = make(map[int]bool)
-	timerStartChan           = make(chan bool)
 )
 
 type Server struct {
@@ -52,7 +51,6 @@ type Server struct {
 
 	Ballot *common.Ballot
 
-	PaxosState int
 	// PaxosState represents the state this node is currently in during a paxos run.
 	// Valid states are
 	// 0 = follower
@@ -60,6 +58,7 @@ type Server struct {
 	// 2 = received/sent acks from majority, and elected as leader
 	// 3 = sent/received accept
 	// 4 = received/sent local logs from peers
+	PaxosState int
 }
 
 // InitServer creates a new server instance and initializes all its parameters
@@ -303,8 +302,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 					}).Info("Changed to new paxos state")
 					if !timerStarted {
 						go server.waitForAcceptedMessages()
-						<-timerStartChan
-						log.Info("started timer(waiting for all ACCEPTED messages)")
+						//<-timerStartChan
 						// this is required, since the Accept messages from the other peer servers come
 						// in quite fast, and during this interval, the timerStarted variable is not
 						// set to True. Due to this race condition, the timer is started once again.
@@ -312,6 +310,9 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 						// time.Sleep(5 * time.Second)
 						go func() {
 							for {
+								//log.WithFields(log.Fields{
+								//	"acceptedMsgTimeout": acceptedMsgTimeout,
+								//}).Info("TIMEOUT FLAGS")
 								if acceptedMsgTimeout {
 									log.Info("time out!")
 									server.processPeerLocalLogs(peerLocalLogs)
@@ -447,5 +448,5 @@ func Start(id int) {
 	BlockChainServer = InitServer(id)
 	go BlockChainServer.startListener()
 	BlockChainServer.createTopology()
-	//BlockChainServer.checkAndReconcile()
+	BlockChainServer.checkAndReconcile()
 }

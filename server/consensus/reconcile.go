@@ -35,6 +35,9 @@ func (server *Server) sendReconcileRequest() {
 			Type:   common.RECONCILE_REQ_MESSAGE,
 		}
 		jReq, _ := json.Marshal(request)
+		log.WithFields(log.Fields{
+			"toServer": peer,
+		}).Info("sending reconcile request to....")
 		server.writeToServer(peer, jReq, common.RECONCILE_REQ_MESSAGE)
 	}
 }
@@ -45,6 +48,7 @@ func (server *Server) reconcile(blockChainVal string, localLogVal string) {
 		localLog   []*common.TransferTxn
 		err        error
 	)
+	log.Info("uh-oh! Reconciliation needed :O")
 	err = json.Unmarshal([]byte(blockChainVal), &blockChain)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -70,6 +74,7 @@ func (server *Server) reconcile(blockChainVal string, localLogVal string) {
 }
 
 func (server *Server) handleReconciliation(msg []*common.ReconcileSeqMessage) {
+	log.Info("handling reconciliation.....")
 	var (
 		maxSeqNum         int
 		maxSeqNumServerId int
@@ -87,7 +92,6 @@ func (server *Server) handleReconciliation(msg []*common.ReconcileSeqMessage) {
 	}
 	jReq, _ := json.Marshal(request)
 	server.writeToServer(maxSeqNumServerId, jReq, common.RECONCILE_BLOCKCHAIN_REQUEST)
-
 }
 
 func (server *Server) sendBlockchain(destServer int) {
@@ -117,6 +121,7 @@ func (server *Server) checkAndReconcile() {
 		blockChain, localLog string
 		err                  error
 	)
+	log.Info("Let's see if we need to reconcile!")
 	// redis lookup
 	blockChain, err = server.RedisConn.Get(fmt.Sprintf(common.REDIS_BLOCKCHAIN_KEY, server.Id)).Result()
 	if err == redis.Nil {
