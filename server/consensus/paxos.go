@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jpillora/backoff"
-
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -38,28 +36,23 @@ func (server *Server) getElected() {
 func (server *Server) writeToServer(toServer int, msg []byte, messageType string) {
 	var (
 		err error
-		d   time.Duration
-		b   = &backoff.Backoff{
-			Min:    10 * time.Second,
-			Max:    1 * time.Minute,
-			Factor: 2,
-			Jitter: false,
-		}
 	)
-	d = b.Duration()
-	for {
-		_, err = server.ServerConn[toServer].Write(msg)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error":       err.Error(),
-				"toServer":    toServer,
-				"messageType": messageType,
-			}).Error("error writing message to server")
-			time.Sleep(d)
-			server.reconnectToServer(toServer)
-		} else {
-			break
-		}
+	if _, OK := server.ServerConn[toServer]; !OK {
+		log.WithFields(log.Fields{
+			"fromServerId": server.Id,
+			"toServerId":   toServer,
+		}).Error("connection obj not found, unable to write")
+		return
+	}
+	_, err = server.ServerConn[toServer].Write(msg)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":       err.Error(),
+			"toServer":    toServer,
+			"messageType": messageType,
+		}).Error("error writing message to server")
+		delete(server.ServerConn, toServer)
+		//go server.reconnectToServer(toServer)
 	}
 }
 
