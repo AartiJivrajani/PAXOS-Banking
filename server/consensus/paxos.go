@@ -93,17 +93,15 @@ func (server *Server) validateBallotNumber(reqBallotNum int) bool {
 func (server *Server) waitForAcceptedMessages() {
 	timer := time.NewTimer(10 * time.Second)
 	timerStarted = true
-	timerStartChan <- true
-	go func() {
-		for {
-			select {
-			case <-timer.C:
-				acceptedMsgTimeout = true
-				timerStarted = false
-				break
-			}
+	log.Info("started timer(waiting for all ACCEPTED messages)")
+	for {
+		select {
+		case <-timer.C:
+			acceptedMsgTimeout = true
+			timerStarted = false
+			break
 		}
-	}()
+	}
 }
 
 func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
