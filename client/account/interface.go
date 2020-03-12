@@ -75,6 +75,9 @@ func (client *Client) StartTransactions() {
 			if receiverClientId == client.Id {
 				log.Error("you cant send money to yourself!")
 				continue
+			} else if receiverClientId > 3 {
+				log.Error("invalid client id")
+				continue
 			}
 			prompt = promptui.Prompt{
 				Label:   "Amount to be transacted",

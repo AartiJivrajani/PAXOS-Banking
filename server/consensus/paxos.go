@@ -108,6 +108,10 @@ func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
 	// before creating and adding a new block, increment the seq number
 	server.SeqNum += 1 // TODO: [Aarti] - Check this logic with Rakshith once
 
+	log.WithFields(log.Fields{
+		"new seq number": server.SeqNum,
+	}).Info("INCREMENTING SEQUENCE NUMBER")
+
 	block := &common.Block{
 		SeqNum:       server.SeqNum,
 		Transactions: make([]*common.TransferTxn, 0),
@@ -256,6 +260,9 @@ func (server *Server) updateBlockchain(msg *common.Block) {
 		SeqNum:       msg.SeqNum,
 		Transactions: msg.Transactions,
 	}
+	// increment the sequence number of the server
+	server.SeqNum = msg.SeqNum
+
 	log.WithFields(log.Fields{
 		"existing blockchain": utils.GetBlockchainPrint(server.Blockchain),
 	}).Info("blockchain before update")
