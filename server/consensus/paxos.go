@@ -105,19 +105,18 @@ func (server *Server) waitForAcceptedMessages() {
 }
 
 func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
+	// before creating and adding a new block, increment the seq number
+	server.SeqNum += 1 // TODO: [Aarti] - Check this logic with Rakshith once
+
 	block := &common.Block{
 		SeqNum:       server.SeqNum,
 		Transactions: make([]*common.TransferTxn, 0),
 	}
-
-	// before creating and adding a new block, increment the seq number
-	server.SeqNum += 1 // TODO: [Aarti] - Check this logic with Rakshith once
 	for _, localTxns := range logs {
 		for _, txn := range localTxns.Txns {
 			block.Transactions = append(block.Transactions, txn)
 		}
 	}
-
 	// TODO: Confirm this logic once?
 	// add the server's own local log as well
 	for _, txn := range server.Log {

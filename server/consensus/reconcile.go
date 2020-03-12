@@ -107,6 +107,10 @@ func (server *Server) sendBlockchain(destServer int) {
 }
 
 func (server *Server) receiveBlockchain(blkchain []*common.Block) {
+	log.WithFields(log.Fields{
+		"blockchain": blkchain,
+	}).Info("blockchain received from peer upon reconciliation")
+
 	server.Blockchain = blkchain
 }
 
@@ -132,7 +136,7 @@ func (server *Server) checkAndReconcile() {
 	}
 	localLog, err = server.RedisConn.Get(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id)).Result()
 	if err == redis.Nil {
-		log.Info("no local log found for SERVER-LOG-KEY ")
+		log.Info("no local log found for SERVER-LOG-KEY")
 	} else {
 		reconcile = true
 	}
