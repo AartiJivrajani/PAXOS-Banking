@@ -117,7 +117,10 @@ func (server *Server) receiveBlockchain(blkchain []*common.Block) {
 	log.WithFields(log.Fields{
 		"blockchain": blkchain,
 	}).Info("blockchain received from peer upon reconciliation")
-
+	l := len(blkchain)
+	if l != 0 {
+		server.SeqNum = blkchain[l-1].SeqNum
+	}
 	server.Blockchain = blkchain
 }
 
