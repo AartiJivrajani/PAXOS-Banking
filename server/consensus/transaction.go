@@ -12,7 +12,7 @@ import (
 // getBalance gets the balance from the transactions in the block chain
 // this does not account for the uncommitted transactions in the local log
 func (server *Server) getBalance() int {
-	balance := 100
+	balance := 10
 	for _, block := range server.Blockchain {
 		for _, txn := range block.Transactions {
 			if txn.Recvr == server.Id {

@@ -86,6 +86,10 @@ func (server *Server) handleReconciliation(msg []*common.ReconcileSeqMessage) {
 			maxSeqNumServerId = seqMsg.Id
 		}
 	}
+	log.WithFields(log.Fields{
+		"serverId": maxSeqNumServerId,
+	}).Info("server with MAX blockchain seq number(for reconciliation)")
+
 	request = &common.Message{
 		FromId: server.Id,
 		Type:   common.RECONCILE_BLOCKCHAIN_REQUEST,
