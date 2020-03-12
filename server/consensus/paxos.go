@@ -142,8 +142,27 @@ func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
 	// TODO: !!! Confirm this logic once
 	// add the newly created block to the server itself.
 	server.Blockchain = append(server.Blockchain, block)
+
+	server.updateRedisData()
 	// PHEW! PAXOS IS DONE! finally, send a response to the client.
 	server.sendResponseToClientAfterPaxos()
+}
+
+func (server *Server) updateRedisData() {
+	jBlockChain, _ := json.Marshal(server.Blockchain)
+	_, err := server.RedisConn.Set(fmt.Sprintf(common.REDIS_BLOCKCHAIN_KEY, server.Id), jBlockChain, 0).Result()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("error inserting the blockchain to redis")
+	}
+	jLog, _ := json.Marshal(server.Log)
+	_, err = server.RedisConn.Set(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id), jLog, 0).Result()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("error inserting the local log to redis")
+	}
 }
 
 // sendResponseToClientAfterPaxos checks if the client transaction can still be carried out.
@@ -216,7 +235,7 @@ func (server *Server) sendAllLocalLogs(msg *common.Message) {
 	accMsg := &common.AcceptedMessage{
 		Txns: server.Log,
 		// TODO: which ballot number is this? are we sure its the peer's ballot number since we
-		//assume that post election, both the leader and peer ballot number would be the same?
+		// assume that post election, both the leader and peer ballot number would be the same?
 		Ballot: server.Ballot,
 		//SeqNum: 0, // TODO: Do we need this?
 	}
@@ -243,13 +262,7 @@ func (server *Server) updateBlockchain(msg *common.Block) {
 	}).Info("blockchain before update")
 
 	server.Blockchain = append(server.Blockchain, block)
-	jBlock, _ := json.Marshal(server.Blockchain)
-	_, err := server.RedisConn.Set(fmt.Sprintf(common.REDIS_BLOCKCHAIN_KEY, server.Id), jBlock, 0).Result()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err.Error(),
-		}).Error("error inserting the blockchain to redis")
-	}
+
 	log.WithFields(log.Fields{
 		"chain": utils.GetBlockchainPrint(server.Blockchain),
 	}).Info("blockchain after update")
@@ -257,6 +270,8 @@ func (server *Server) updateBlockchain(msg *common.Block) {
 	// has sent back a block
 	server.Log = nil
 	server.Log = make([]*common.TransferTxn, 0)
+
+	server.updateRedisData()
 }
 
 // execPaxosRun initiates a PAXOS run and then adds the transaction to the local block chain
