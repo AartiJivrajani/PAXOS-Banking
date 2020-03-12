@@ -120,18 +120,24 @@ func (server *Server) checkAndReconcile() {
 	var (
 		blockChain, localLog string
 		err                  error
+		reconcile            = false
 	)
 	log.Info("Let's see if we need to reconcile!")
 	// redis lookup
 	blockChain, err = server.RedisConn.Get(fmt.Sprintf(common.REDIS_BLOCKCHAIN_KEY, server.Id)).Result()
 	if err == redis.Nil {
-		return
+		log.Info("no blockchain found for SERVER-BLOCKCHAIN-KEY")
 	} else {
-		localLog, err = server.RedisConn.Get(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id)).Result()
-		if err == redis.Nil {
-			return
-		}
-		server.reconcile(blockChain, localLog)
-		return
+		reconcile = true
 	}
+	localLog, err = server.RedisConn.Get(fmt.Sprintf(common.REDIS_LOG_KEY, server.Id)).Result()
+	if err == redis.Nil {
+		log.Info("no local log found for SERVER-LOG-KEY ")
+	} else {
+		reconcile = true
+	}
+	if reconcile {
+		server.reconcile(blockChain, localLog)
+	}
+	return
 }

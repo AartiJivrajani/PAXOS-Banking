@@ -310,9 +310,9 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 						// time.Sleep(5 * time.Second)
 						go func() {
 							for {
-								//log.WithFields(log.Fields{
-								//	"acceptedMsgTimeout": acceptedMsgTimeout,
-								//}).Info("TIMEOUT FLAGS")
+								log.WithFields(log.Fields{
+									"acceptedMsgTimeout": acceptedMsgTimeout,
+								}).Info("TIMEOUT FLAGS")
 								if acceptedMsgTimeout {
 									log.Info("time out!")
 									server.processPeerLocalLogs(peerLocalLogs)
