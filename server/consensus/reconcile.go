@@ -22,6 +22,7 @@ func (server *Server) handleReconcileRequestMessage(destServer int) {
 		},
 	}
 	jResp, _ := json.Marshal(resp)
+	log.Info("writing RECONCILE_SEQ_NUMBER back to the servers.....")
 	server.writeToServer(destServer, jResp, common.RECONCILE_SEQ_NUMBER)
 }
 
@@ -69,7 +70,9 @@ func (server *Server) reconcile(blockChainVal string, localLogVal string) {
 	}
 
 	server.sendReconcileRequest()
+	log.Info("waiting for waitForReconcileResponse")
 	seqNumbers := <-waitForReconcileResponse
+	log.Info("got message into waitForReconcileResponse")
 	server.handleReconciliation(seqNumbers)
 }
 

@@ -23,6 +23,8 @@ var (
 	waitForReconcileResponse = make(chan []*common.ReconcileSeqMessage)
 	peerLocalLogs            = make([]*common.AcceptedMessage, 0)
 	recvdAcceptMsgMap        = make(map[int]bool)
+	numReconcileSeqMessages  int
+	reconcileLock            sync.Mutex
 )
 
 type Server struct {
@@ -261,10 +263,9 @@ func (server *Server) processBalanceRequest(conn net.Conn) {
 func (server *Server) handleIncomingConnections(conn net.Conn) {
 	log.Info("handling incoming connections......")
 	var (
-		err                     error
-		logStr                  string
-		numReconcileSeqMessages int
-		seqNumbersRecvd         = make([]*common.ReconcileSeqMessage, 0)
+		err             error
+		logStr          string
+		seqNumbersRecvd = make([]*common.ReconcileSeqMessage, 0)
 	)
 	d := json.NewDecoder(conn)
 	for {
@@ -310,9 +311,9 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 						// time.Sleep(5 * time.Second)
 						go func() {
 							for {
-								log.WithFields(log.Fields{
-									"acceptedMsgTimeout": acceptedMsgTimeout,
-								}).Info("TIMEOUT FLAGS")
+								//log.WithFields(log.Fields{
+								//	"acceptedMsgTimeout": acceptedMsgTimeout,
+								//}).Info("TIMEOUT FLAGS")
 								if acceptedMsgTimeout {
 									log.Info("time out!")
 									server.processPeerLocalLogs(peerLocalLogs)
@@ -351,10 +352,19 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 				server.sendAcceptMessage()
 			}
 		case common.RECONCILE_SEQ_NUMBER:
+
+			reconcileLock.Lock()
 			numReconcileSeqMessages += 1
+			reconcileLock.Unlock()
+
+			log.WithFields(log.Fields{
+				"num": numReconcileSeqMessages,
+			}).Info("numReconcileSeqMessages")
+
 			seqNumbersRecvd = append(seqNumbersRecvd, request.ReconcileSeqMessage)
 			// only once the server receives 2 requests, should we process them.
 			if numReconcileSeqMessages == 2 {
+				log.Info("received 2 reconcile sequence numbers")
 				waitForReconcileResponse <- seqNumbersRecvd
 				// reset the reconciliation counter and seqNumbersReceived
 				seqNumbersRecvd = nil
