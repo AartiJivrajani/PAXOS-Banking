@@ -19,6 +19,12 @@ var (
 
 // getElected starts the election process in order for the server to get elected.
 func (server *Server) getElected() {
+	l := len(server.Blockchain)
+	if l != 0 {
+		server.Ballot.BallotNum = server.Blockchain[l-1].SeqNum
+	} else {
+		server.Ballot.BallotNum = 0
+	}
 	server.Ballot.BallotNum += 1
 	// send a prepare message to all the servers
 	msg := &common.Message{
@@ -91,7 +97,7 @@ func (server *Server) validateBallotNumber(reqBallotNum int) bool {
 }
 
 func (server *Server) waitForAcceptedMessages() {
-	timer := time.NewTimer(10 * time.Second)
+	timer := time.NewTimer(5 * time.Second)
 	timerStarted = true
 	log.Info("started timer(waiting for all ACCEPTED messages)")
 	for {
@@ -231,6 +237,7 @@ func (server *Server) processPrepareMessage(msg *common.Message) {
 			"current Ballot Number": server.Ballot.BallotNum,
 			"Id":                    server.Id,
 		}).Info("received prepare request from a lower ballot number")
+		server.PaxosState = 0
 	}
 }
 
