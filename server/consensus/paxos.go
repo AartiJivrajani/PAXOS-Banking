@@ -112,12 +112,6 @@ func (server *Server) waitForAcceptedMessages() {
 }
 
 func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
-	// before creating and adding a new block, increment the seq number
-	server.SeqNum += 1 // TODO: [Aarti] - Check this logic with Rakshith once
-
-	log.WithFields(log.Fields{
-		"new seq number": server.SeqNum,
-	}).Info("INCREMENTING SEQUENCE NUMBER")
 
 	block := &common.Block{
 		SeqNum:       server.SeqNum,
@@ -128,11 +122,23 @@ func (server *Server) processPeerLocalLogs(logs []*common.AcceptedMessage) {
 			block.Transactions = append(block.Transactions, txn)
 		}
 	}
+
 	// TODO: Confirm this logic once?
 	// add the server's own local log as well
 	for _, txn := range server.Log {
 		block.Transactions = append(block.Transactions, txn)
 	}
+
+	// check if there is absolutely nothing to send
+	if len(block.Transactions) != 0 {
+		// before creating and adding a new block, increment the seq number
+		server.SeqNum += 1 // TODO: [Aarti] - Check this logic with Rakshith once
+		block.SeqNum = server.SeqNum
+		log.WithFields(log.Fields{
+			"new seq number": server.SeqNum,
+		}).Info("INCREMENTING SEQUENCE NUMBER")
+	}
+
 	log.WithFields(log.Fields{
 		"local log": utils.GetLocalLogPrint(server.Log),
 		"id":        server.Id,
@@ -211,7 +217,7 @@ func (server *Server) sendResponseToClientAfterPaxos() {
 // processPrepareMessage allows the server to decide if it should
 // elect a new leader and join its ballot.
 func (server *Server) processPrepareMessage(msg *common.Message) {
-	if msg.ElectionMsg.Ballot.BallotNum >= server.Ballot.BallotNum {
+	if msg.ElectionMsg.Ballot.BallotNum > server.Ballot.BallotNum {
 		log.WithFields(log.Fields{
 			"current Ballot Number": server.Ballot.BallotNum,
 			"new Ballot Number":     msg.ElectionMsg.Ballot.BallotNum,
@@ -244,11 +250,8 @@ func (server *Server) processPrepareMessage(msg *common.Message) {
 
 func (server *Server) sendAllLocalLogs(msg *common.Message) {
 	accMsg := &common.AcceptedMessage{
-		Txns: server.Log,
-		// TODO: which ballot number is this? are we sure its the peer's ballot number since we
-		// assume that post election, both the leader and peer ballot number would be the same?
+		Txns:   server.Log,
 		Ballot: server.Ballot,
-		//SeqNum: 0, // TODO: Do we need this?
 	}
 	commonMessage := &common.Message{
 		FromId:          server.Id,
@@ -260,7 +263,7 @@ func (server *Server) sendAllLocalLogs(msg *common.Message) {
 	log.WithFields(log.Fields{
 		"new paxos state": server.PaxosState,
 	}).Info("Changed to new paxos state")
-	server.writeToServer(msg.FromId, jMsg, common.ELECTION_ACCEPT_MESSAGE)
+	server.writeToServer(msg.FromId, jMsg, common.ELECTION_ACCEPTED_MESSAGE)
 }
 
 func (server *Server) updateBlockchain(msg *common.Block) {
@@ -268,15 +271,16 @@ func (server *Server) updateBlockchain(msg *common.Block) {
 		SeqNum:       msg.SeqNum,
 		Transactions: msg.Transactions,
 	}
-	// increment the sequence number of the server
-	server.SeqNum = msg.SeqNum
 
 	log.WithFields(log.Fields{
 		"existing blockchain": utils.GetBlockchainPrint(server.Blockchain),
 	}).Info("blockchain before update")
 
-	server.Blockchain = append(server.Blockchain, block)
-
+	if len(msg.Transactions) != 0 {
+		// increment the sequence number of the server
+		server.SeqNum = msg.SeqNum
+		server.Blockchain = append(server.Blockchain, block)
+	}
 	log.WithFields(log.Fields{
 		"chain": utils.GetBlockchainPrint(server.Blockchain),
 	}).Info("blockchain after update")
