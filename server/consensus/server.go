@@ -17,8 +17,6 @@ import (
 )
 
 var (
-	// TODO: See if we really need this?
-	BlockchainLock           sync.Mutex
 	BlockChainServer         *Server
 	waitForReconcileResponse = make(chan []*common.ReconcileSeqMessage)
 	peerLocalLogs            = make([]*common.AcceptedMessage, 0)
@@ -52,7 +50,7 @@ type Server struct {
 	Log []*common.TransferTxn
 
 	Ballot *common.Ballot
-
+	
 	// PaxosState represents the state this node is currently in during a paxos run.
 	// Valid states are
 	// 0 = follower
@@ -286,9 +284,6 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			}).Info("Changed to new paxos state")
 			server.updateBlockchain(request.BlockMessage)
 		case common.ELECTION_ACCEPTED_MESSAGE:
-			// since we are broadcasting the accept messages, we will receive the accepted messages
-			// 4 times(twice from each peer). Maintain the IDs of the peers which have
-			// already sent the accepted messages
 			if _, OK := recvdAcceptMsgMap[request.FromId]; !OK {
 				log.WithFields(log.Fields{
 					"fromId":  request.FromId,
@@ -303,12 +298,6 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 					}).Info("Changed to new paxos state")
 					if !timerStarted {
 						go server.waitForAcceptedMessages()
-						//<-timerStartChan
-						// this is required, since the Accept messages from the other peer servers come
-						// in quite fast, and during this interval, the timerStarted variable is not
-						// set to True. Due to this race condition, the timer is started once again.
-						// Sleep for 5 seconds to avoid such a condition.
-						// time.Sleep(5 * time.Second)
 						go func() {
 							for {
 								//log.WithFields(log.Fields{
@@ -333,6 +322,7 @@ func (server *Server) handleIncomingConnections(conn net.Conn) {
 			log.WithFields(log.Fields{
 				"new paxos state": server.PaxosState,
 			}).Info("Changed to new paxos state")
+			time.Sleep(3 * time.Second)
 			server.processPrepareMessage(request)
 		case common.ELECTION_ACCEPT_MESSAGE:
 			if server.PaxosState == 2 {
