@@ -37,6 +37,7 @@ func (server *Server) getElected() {
 	}
 	jMsg, _ := json.Marshal(msg)
 	server.broadcastMessages(jMsg, common.ELECTION_PREPARE_MESSAGE)
+	time.Sleep(3 * time.Second)
 }
 
 func (server *Server) writeToServer(toServer int, msg []byte, messageType string) {
